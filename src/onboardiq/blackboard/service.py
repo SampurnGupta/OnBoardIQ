@@ -64,10 +64,14 @@ ZONE_WRITE_PERMISSIONS: dict[str, set[str]] = {
 
 
 def get_store() -> BlackboardStore:
-    db_path = os.getenv("BLACKBOARD_DB_PATH", ":memory:")
-    # If using memory store across multiple requests in the app lifecycle, attach to app.state
+    backend = os.getenv("BLACKBOARD_STORE_BACKEND", "sqlite").lower()
     if not hasattr(app.state, "store"):
-        app.state.store = SQLiteBlackboardStore(db_path=db_path)
+        if backend == "firestore":
+            from onboardiq.blackboard.firestore_store import FirestoreBlackboardStore
+            app.state.store = FirestoreBlackboardStore()
+        else:
+            db_path = os.getenv("BLACKBOARD_DB_PATH", ":memory:")
+            app.state.store = SQLiteBlackboardStore(db_path=db_path)
     return app.state.store
 
 

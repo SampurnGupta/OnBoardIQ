@@ -1,10 +1,11 @@
 """OnboardIQ Streamlit Web Application.
 
 Per docs/02_PRD.md and docs/06_IMPLEMENTATION_PLAN.md T31:
-- Client application form (select case, persona, pattern, mode)
+- Client application form (select case, persona, pattern, mode, reasoning)
 - Live zoned blackboard inspector with masked PII
 - Compliance officer review console with human override
-- Evaluation metrics and visualization dashboard
+- Evaluation metrics and visualization dashboard (all 7 benchmark plots)
+- OpenTelemetry Distributed Tracing & Audit Provenance Inspector
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from onboardiq.agents.adk.orchestrator import Orchestrator
 from onboardiq.blackboard.client import BlackboardClient
 from onboardiq.blackboard.service import app as fastapi_app
 from onboardiq.blackboard.store import SQLiteBlackboardStore
+from onboardiq.guardrails.persona_injector import inject_persona
 from onboardiq.schema import (
     LabelledCase,
     Mode,
@@ -27,6 +29,7 @@ from onboardiq.schema import (
     Reasoning,
     RunConfig,
 )
+from onboardiq.telemetry.tracing import get_provenance_summary
 
 # Page configuration
 st.set_page_config(
@@ -36,7 +39,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS for polished fintech feel
+# Custom CSS for fintech feel
 st.markdown(
     """
     <style>
@@ -62,7 +65,7 @@ def get_shared_client() -> BlackboardClient:
 
 
 def load_cases() -> dict[str, LabelledCase]:
-    """Load all benchmark cases from data/cases/."""
+    """Load all 24 benchmark cases from data/cases/."""
     cases: dict[str, LabelledCase] = {}
     cases_dir = Path("data/cases")
     if cases_dir.exists():
@@ -75,14 +78,16 @@ def load_cases() -> dict[str, LabelledCase]:
 
 # Sidebar Navigation
 st.sidebar.markdown("## 🛡️ OnboardIQ")
-st.sidebar.markdown("**Agentic KYC/AML System**")
+st.sidebar.markdown("**Multi-Agent KYC/AML System**")
+st.sidebar.markdown("*(CSE3101 Agentic AI Coursework)*")
 nav = st.sidebar.radio(
-    "Navigation",
+    "Navigation Menu",
     [
         "📋 Client Application",
         "🧠 Live Blackboard",
         "⚖️ Compliance Officer Console",
         "📊 Evaluation & Analytics",
+        "🔍 OpenTelemetry Provenance",
     ],
 )
 
@@ -100,198 +105,159 @@ if "last_run_id" not in st.session_state:
 if nav == "📋 Client Application":
     st.markdown('<div class="main-header">Client Onboarding Portal</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-header">Submit applicant credentials through the Security Gateway to trigger multi-agent screening.</div>',
+        '<div class="sub-header">Submit corporate or individual onboarding dossiers across agent frameworks.</div>',
         unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns([1, 1])
+    col_form, col_summary = st.columns([1.1, 1])
 
-    with col1:
-        st.markdown("### 1. Select Applicant Case")
-        case_options = {
-            cid: f"{cid}: {c.declared_name} ({c.client_type.value.title()})"
-            for cid, c in all_cases.items()
-        }
-        selected_cid = st.selectbox("Benchmark Applicant", list(case_options.keys()), format_func=lambda x: case_options[x])
-        selected_case = all_cases[selected_cid]
-
-        st.info(
-            f"**Applicant:** {selected_case.declared_name}  \n"
-            f"**Country:** {selected_case.declared_country} | **Type:** {selected_case.client_type.value.title()}  \n"
-            f"**Source of Funds:** {selected_case.declared_source_of_funds}  \n"
-            f"**Expected Volume:** ₹{selected_case.expected_monthly_volume_inr:,.0f}/month"
+    with col_form:
+        st.markdown("### 1. Select Client Case")
+        case_options = list(all_cases.keys())
+        selected_case_id = st.selectbox(
+            "Benchmark Case",
+            case_options,
+            format_func=lambda cid: f"{cid}: {all_cases[cid].declared_name} ({all_cases[cid].client_type.value.upper()})",
         )
+        case_data = all_cases[selected_case_id]
 
-        st.markdown("### 2. Runtime Execution Configuration")
-        c_mode = st.selectbox("Messaging Mode", ["blackboard", "hybrid_p2p"], index=0)
-        c_pattern = st.selectbox("Execution Pattern", ["sequential", "parallel"], index=0)
-        c_persona = st.selectbox("Applicant Persona", ["cooperative", "impatient", "abusive", "forger", "injecting"], index=0)
-        c_guardrails = st.checkbox("Enable Security Guardrails", value=True)
+        st.markdown("### 2. Multi-Agent System Parameters")
+        c1, c2 = st.columns(2)
+        with c1:
+            mode_choice = st.selectbox(
+                "Messaging Architecture",
+                [Mode.BLACKBOARD, Mode.HYBRID_P2P],
+                format_func=lambda m: "Central Blackboard" if m == Mode.BLACKBOARD else "Hybrid Peer-to-Peer",
+            )
+            pattern_choice = st.selectbox(
+                "Orchestration Pattern",
+                [Pattern.SEQUENTIAL, Pattern.PARALLEL],
+                format_func=lambda p: "Sequential Pipeline" if p == Pattern.SEQUENTIAL else "Parallel ThreadPool Dispatch",
+            )
+        with c2:
+            persona_choice = st.selectbox(
+                "Applicant Persona",
+                [Persona.COOPERATIVE, Persona.IMPATIENT, Persona.ABUSIVE, Persona.FORGER, Persona.INJECTING],
+                format_func=lambda p: f"{p.value.capitalize()} Persona",
+            )
+            reasoning_choice = st.selectbox(
+                "Agent Reasoning Paradigm",
+                [Reasoning.PLAIN, Reasoning.REACT],
+                format_func=lambda r: "Plain Declarative" if r == Reasoning.PLAIN else "ReAct (Thought-Action-Observation)",
+            )
 
-        run_btn = st.button("🚀 Submit Application & Run Onboarding", type="primary", use_container_width=True)
+        guardrails_enabled = st.checkbox("Enable Security Perimeter Guardrails (Toxicity & Injection)", value=True)
 
-    with col2:
-        st.markdown("### 3. Declared Documents")
-        if selected_case.documents:
-            for doc_path in selected_case.documents:
+        if st.button("🚀 Run Multi-Agent Onboarding", type="primary", use_container_width=True):
+            with st.spinner("Dispatching agents across Google ADK and CrewAI..."):
+                active_run_id = f"ui_{case_data.case_id}_{mode_choice.value[:2]}_{pattern_choice.value[:3]}"
+
+                # Inject persona if non-cooperative
+                run_case_obj = case_data
+                if persona_choice != Persona.COOPERATIVE:
+                    run_case_obj, _ = inject_persona(case_data, persona_choice)
+
+                config = RunConfig(
+                    case_id=run_case_obj.case_id,
+                    mode=mode_choice,
+                    pattern=pattern_choice,
+                    persona=persona_choice,
+                    reasoning=reasoning_choice,
+                    guardrails_enabled=guardrails_enabled,
+                )
+
+                orchestrator = Orchestrator()
+                report = orchestrator.run_case(
+                    case=run_case_obj,
+                    board_client=client,
+                    run_id=active_run_id,
+                    config=config,
+                )
+
+                st.session_state.recent_reports[active_run_id] = report
+                st.session_state.last_run_id = active_run_id
+
+            st.success(f"Onboarding execution complete for `{active_run_id}`!")
+
+    with col_summary:
+        st.markdown("### Client Dossier Details")
+        st.write(f"- **Declared Legal Name**: `{case_data.declared_name}`")
+        st.write(f"- **Entity Type**: `{case_data.client_type.value.capitalize()}`")
+        st.write(f"- **Jurisdiction**: `{case_data.declared_country}`")
+        st.write(f"- **Declared Source of Funds**: `{case_data.declared_source_of_funds}`")
+        st.write(f"- **Monthly Expected Volume**: `INR {case_data.expected_monthly_volume_inr:,.0f}`")
+        st.write(f"- **Supporting Documents**: `{len(case_data.documents)} document(s)`")
+
+        if case_data.documents:
+            st.markdown("#### Document Previews")
+            for doc_path in case_data.documents[:2]:
                 p = Path(doc_path)
-                st.caption(f"Document File: `{p.name}`")
-                if p.exists() and p.suffix.lower() in (".png", ".jpg", ".jpeg"):
-                    st.image(str(p), width=320)
-        else:
-            st.info("No documents declared for this case.")
+                if p.exists():
+                    st.image(str(p), caption=p.name, width=320)
 
-        if selected_case.ownership_chart:
-            st.markdown("### Corporate Ownership Chart")
-            st.json(selected_case.ownership_chart)
+        # Show latest run outcome
+        if st.session_state.last_run_id:
+            latest_rep: OnboardingReport = st.session_state.recent_reports[st.session_state.last_run_id]
+            st.markdown("---")
+            st.markdown(f"### Latest Run Outcome (`{st.session_state.last_run_id}`)")
 
-    if run_btn:
-        with st.spinner("Executing OnboardIQ agents across extraction, screening, and risk scoring..."):
-            orch = Orchestrator()
-            run_id = f"ui_{selected_case.case_id}_{c_mode[:2]}_{c_pattern[:3]}"
+            d_color = "badge-approve"
+            if latest_rep.decision.value == "approve_with_enhanced_monitoring":
+                d_color = "badge-edd"
+            elif latest_rep.decision.value == "escalate_to_human":
+                d_color = "badge-escalate"
 
-            config = RunConfig(
-                case_id=selected_case.case_id,
-                mode=Mode(c_mode),
-                pattern=Pattern(c_pattern),
-                persona=Persona(c_persona),
-                reasoning=Reasoning.PLAIN,
-                guardrails_enabled=c_guardrails,
+            st.markdown(
+                f'<span class="{d_color}">DECISION: {latest_rep.decision.value.upper()}</span> &nbsp; '
+                f'<strong>Tier:</strong> `{latest_rep.risk_tier.value.upper()}` &nbsp; '
+                f'<strong>Score:</strong> `{latest_rep.risk_score:.0f}/100`',
+                unsafe_allow_html=True,
             )
-
-            report = orch.run_case(
-                case=selected_case,
-                board_client=client,
-                run_id=run_id,
-                config=config,
-            )
-
-            st.session_state.recent_reports[run_id] = report
-            st.session_state.last_run_id = run_id
-            st.success(f"Onboarding execution completed for `{run_id}` in {report.total_runtime_s:.2f}s!")
-
-    # Display Report if available
-    active_run = st.session_state.last_run_id
-    if active_run and active_run in st.session_state.recent_reports:
-        rep: OnboardingReport = st.session_state.recent_reports[active_run]
-
-        st.markdown("---")
-        st.markdown(f"## 📑 Onboarding Report: `{rep.run_id}`")
-
-        # KPI Badges
-        kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
-        with kpi1:
-            st.metric("Risk Score", f"{rep.risk_score:.0f} / 100")
-        with kpi2:
-            st.metric("Risk Tier", rep.risk_tier.value.upper())
-        with kpi3:
-            st.metric("Red Flags", len(rep.red_flags))
-        with kpi4:
-            st.metric("Sanctions Hits", rep.sanctions_or_pep_hits)
-        with kpi5:
-            st.metric("Execution Time", f"{rep.total_runtime_s:.3f}s")
-
-        # Decision Alert
-        dec_val = rep.decision.value
-        if dec_val == "approve":
-            st.success(f"### FINAL DECISION: {dec_val.upper()}")
-        elif dec_val == "approve_with_enhanced_monitoring":
-            st.warning(f"### FINAL DECISION: {dec_val.upper()} (Enhanced Monitoring Required)")
-        else:
-            st.error(f"### FINAL DECISION: {dec_val.upper()} (Escalated to Compliance Officer)")
-
-        st.markdown("#### Rationale")
-        st.info(rep.decision_rationale)
-
-        with st.expander("🔍 View Resolvable Evidence Trail"):
-            for ev in rep.evidence_trail:
-                st.code(f"ID: {ev.evidence_id} | Agent: {ev.agent_id} | Tool: {ev.tool or 'N/A'} | Record: {ev.record_id or 'N/A'}")
-
-        with st.expander("⚡ Agent Execution Metrics & Telemetry"):
-            metrics_table = [
-                {
-                    "Agent": m.agent_id,
-                    "Latency (ms)": m.total_latency_ms,
-                    "Tokens": m.tokens,
-                    "Cost ($)": f"${m.cost_usd:.6f}",
-                    "Tool Calls": m.tool_calls,
-                }
-                for m in rep.per_agent
-            ]
-            st.dataframe(metrics_table, use_container_width=True)
+            st.markdown(f"**Rationale:** {latest_rep.decision_rationale}")
+            st.write(f"- **Runtime:** `{latest_rep.total_runtime_s:.2f}s` | **Tokens:** `{sum(m.tokens for m in latest_rep.per_agent)}`")
+            st.write(f"- **Planted Red Flags Detected:** `{len(latest_rep.red_flags)}`")
 
 
 # =========================================================================
 # View 2: Live Zoned Blackboard Inspector
 # =========================================================================
 elif nav == "🧠 Live Blackboard":
-    st.markdown('<div class="main-header">Zoned Blackboard Inspector</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Live Zoned Blackboard Inspector</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-header">Inspect typed, versioned state zones in real-time. Raw PII is automatically masked.</div>',
+        '<div class="sub-header">Audit shared state across Blackboard zones with cryptographic PII masking.</div>',
         unsafe_allow_html=True,
     )
 
-    run_list = list(st.session_state.recent_reports.keys())
-    if not run_list:
-        st.warning("No runs executed yet in this session. Go to '📋 Client Application' and run a case first!")
+    if not st.session_state.recent_reports:
+        st.info("No active runs executed yet in this session. Head to **Client Application** and run a case first!")
     else:
-        chosen_run = st.selectbox("Select Blackboard Run", run_list)
-        board = client.get_run(chosen_run, agent_id="adk.orchestrator")
+        run_ids = list(st.session_state.recent_reports.keys())
+        selected_run = st.selectbox("Active Blackboard Run", run_ids, index=len(run_ids) - 1)
+        board = client.get_run(selected_run, agent_id="adk.orchestrator")
 
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Run ID", board.run_id)
-        m2.metric("Version (Audit Log)", board.version)
-        m3.metric("Messaging Mode", board.mode.value)
-        m4.metric("Execution Pattern", board.pattern.value)
+        st.markdown(f"**Active Phase:** `{board.phase.value.upper()}` | **Concurrency Version:** `v{board.version}`")
 
-        tab_intake, tab_verif, tab_screen, tab_risk, tab_review, tab_sys = st.tabs(
-            ["📥 Intake Zone", "🔍 Verification", "🛡️ Screening & UBO", "⚠️ Risk Zone", "📝 Review Zone", "⚙️ System Traces"]
+        tab_intake, tab_ver, tab_scr, tab_risk, tab_review, tab_sys = st.tabs(
+            ["Intake Zone", "Verification Zone", "Screening Zone", "Risk Zone", "Review Zone", "System Zone"]
         )
 
         with tab_intake:
-            st.markdown("#### Masked Client Profile (Safe for Agents)")
+            st.markdown("#### Masked Profile (PII Safe)")
             st.json(board.intake.profile.model_dump())
             st.markdown("#### Extracted Documents")
-            st.json([d.model_dump() for d in board.intake.documents])
-            st.markdown("#### Restricted PII Vault (Masked)")
-            st.json({
-                "raw_name": board.pii_vault.raw_name,
-                "address": board.pii_vault.address,
-                "dob": board.pii_vault.dob,
-                "status": "Restricted Access Enforced by Access Control Matrix",
-            })
+            st.dataframe([d.model_dump() for d in board.intake.documents], use_container_width=True)
 
-        with tab_verif:
-            st.markdown("#### Identity Verification Checks")
-            if board.verification.checks:
-                for chk in board.verification.checks:
-                    st.write(f"- **{chk.check_type}**: {'✅ PASSED' if chk.passed else '❌ FAILED'} (Similarity: {chk.similarity:.2f})")
-                    st.caption(f"Detail: {chk.detail} | Evidence: `{chk.evidence.evidence_id}`")
-            else:
-                st.write("No verification checks recorded.")
+        with tab_ver:
+            st.markdown("#### Identity Checks")
+            st.dataframe([c.model_dump() for c in board.verification.checks], use_container_width=True)
 
-        with tab_screen:
-            st.markdown("#### Sanctions & PEP Hits")
-            if board.screening.hits:
-                for hit in board.screening.hits:
-                    st.error(f"🚨 Hit: `{hit.matched_name}` on {hit.list_name} (Score: {hit.match_score:.2f}, Disposition: {hit.disposition})")
-                    st.caption(f"Reasoning: {hit.reasoning}")
-            else:
-                st.success("No sanctions or PEP matches found.")
-
-            st.markdown("#### Corporate UBO Graph Entries")
-            if board.screening.ubos:
-                for u in board.screening.ubos:
-                    st.write(f"🏢 **{u.owner_name}**: {u.ownership_pct}% | Path: `{' -> '.join(u.path)}` | Verified: {'✅' if u.verified else '❌'}")
-            else:
-                st.info("No corporate UBO entries for this case.")
-
-            st.markdown("#### Red Flags Raised")
-            if board.screening.red_flags:
-                for rf in board.screening.red_flags:
-                    st.warning(f"🚩 **{rf.flag_type.upper()}** (Severity: {rf.severity}) | Raised by: `{rf.raised_by}`")
-            else:
-                st.success("Zero red flags active.")
+        with tab_scr:
+            st.markdown("#### Watchlist Hits (OFAC & PEP)")
+            st.dataframe([h.model_dump() for h in board.screening.hits], use_container_width=True)
+            st.markdown("#### Adverse Media Findings")
+            st.dataframe([m.model_dump() for m in board.screening.media], use_container_width=True)
+            st.markdown("#### Raised Red Flags")
+            st.dataframe([f.model_dump() for f in board.screening.red_flags], use_container_width=True)
 
         with tab_risk:
             st.markdown("#### Risk Assessment")
@@ -433,16 +399,66 @@ elif nav == "📊 Evaluation & Analytics":
     else:
         st.warning("Run the evaluation runner first using `python -m onboardiq.eval.runner`!")
 
-    st.markdown("### Benchmark Visualizations")
-    col_p1, col_p2 = st.columns(2)
+    st.markdown("### Empirical Benchmark Plots")
+    p_col1, p_col2 = st.columns(2)
 
-    plot_box = Path("results/plots/runtime_by_pattern.png")
-    plot_heat = Path("results/plots/agent_phase_heatmap.png")
+    with p_col1:
+        p1 = Path("results/plots/runtime_and_cost_boxplots.png")
+        if p1.exists():
+            st.image(str(p1), caption="Runtime & Cost: Sequential vs Parallel | Blackboard vs Hybrid P2P", use_container_width=True)
 
-    with col_p1:
-        if plot_box.exists():
-            st.image(str(plot_box), caption="Runtime Spread: Sequential vs Parallel Patterns", use_container_width=True)
-    with col_p2:
-        if plot_heat.exists():
-            st.image(str(plot_heat), caption="Agent x Phase Latency Heatmap", use_container_width=True)
+        p2 = Path("results/plots/tokens_per_run_by_mode.png")
+        if p2.exists():
+            st.image(str(p2), caption="Token Consumption Spread: Blackboard vs Hybrid P2P", use_container_width=True)
 
+        p3 = Path("results/plots/heatmap_agent_phase_latency.png")
+        if p3.exists():
+            st.image(str(p3), caption="Agent x Phase Latency Heatmap (ms)", use_container_width=True)
+
+    with p_col2:
+        p4 = Path("results/plots/red_flag_recall_by_persona.png")
+        if p4.exists():
+            st.image(str(p4), caption="Red Flag Recall by Applicant Persona", use_container_width=True)
+
+        p5 = Path("results/plots/injection_ablation_bar_chart.png")
+        if p5.exists():
+            st.image(str(p5), caption="Prompt Injection Attack Success Rate (Ablation)", use_container_width=True)
+
+        p6 = Path("results/plots/heatmap_agent_errors_guardrails.png")
+        if p6.exists():
+            st.image(str(p6), caption="Errors & Guardrail Triggers Heatmap by Agent", use_container_width=True)
+
+
+# =========================================================================
+# View 5: OpenTelemetry Distributed Tracing & Audit Provenance Inspector
+# =========================================================================
+elif nav == "🔍 OpenTelemetry Provenance":
+    st.markdown('<div class="main-header">OpenTelemetry Provenance & Distributed Traces</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sub-header">Inspect 1-case-1-trace provenance, span hierarchies, and zero-PII audit guarantees.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not st.session_state.recent_reports:
+        st.info("Run an onboarding case from the **Client Application** tab to inspect its OpenTelemetry trace!")
+    else:
+        run_ids = list(st.session_state.recent_reports.keys())
+        selected_run = st.selectbox("Inspect Trace for Run", run_ids, index=len(run_ids) - 1)
+        prov = get_provenance_summary(selected_run)
+
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            st.markdown("#### OpenTelemetry Trace Metadata")
+            st.write(f"- **Case Run ID**: `{prov['run_id']}`")
+            st.write(f"- **Deterministic 128-bit Trace ID**: `0x{prov['trace_id_hex']}`")
+            st.write(f"- **Total Captured Spans**: `{prov['total_spans']}`")
+            st.write(f"- **Provenance Audit Verified**: `{'✅ VERIFIED' if prov['provenance_verified'] else '❌ UNVERIFIED'}`")
+
+        with col_t2:
+            st.markdown("#### Trace Component Participation")
+            st.write(f"- **Agents Traced**: `{', '.join(prov['agents_traced']) or 'None'}`")
+            st.write(f"- **Tools Called**: `{', '.join(prov['tools_called']) or 'None'}`")
+            st.write(f"- **Guardrail Checks**: `{', '.join(prov['guardrail_checks']) or 'None'}`")
+
+        st.markdown("#### Span Hierarchy Trail")
+        st.dataframe([{"Span Index": idx + 1, "Span Name": s_name} for idx, s_name in enumerate(prov["span_names"])], use_container_width=True)

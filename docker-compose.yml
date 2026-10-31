@@ -1,0 +1,70 @@
+# OnboardIQ Multi-Service Local Deployment Composition
+# Demonstrates microservice modularity across FastAPI Blackboard, FastMCP Tools,
+# CrewAI A2A Screening, ADK Orchestrator, and Streamlit Dashboard.
+
+services:
+  blackboard-svc:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.blackboard
+    container_name: onboardiq-blackboard
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - BLACKBOARD_STORE_BACKEND=sqlite
+      - BLACKBOARD_DB_PATH=/app/data/blackboard.db
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  mcp-tools:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.mcp
+    container_name: onboardiq-mcp-tools
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      blackboard-svc:
+        condition: service_healthy
+
+  screening-crewai:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.screening
+    container_name: onboardiq-screening-crew
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - BLACKBOARD_URL=http://blackboard-svc:8001
+    depends_on:
+      blackboard-svc:
+        condition: service_healthy
+
+  ui:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.ui
+    container_name: onboardiq-ui
+    ports:
+      - "8501:8501"
+    environment:
+      - PORT=8501
+      - BLACKBOARD_URL=http://blackboard-svc:8001
+      - A2A_SCREENING_URL=http://screening-crewai:8003
+    depends_on:
+      blackboard-svc:
+        condition: service_healthy
+      screening-crewai:
+        condition: service_started
+

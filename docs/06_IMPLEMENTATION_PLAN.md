@@ -113,8 +113,12 @@ Planned from Oct 31 to the Nov 6 (23:59) Project 2 submission, then continuing t
 - [x] **T30 Full evaluation** (40+ runs), side studies, statistics, all plots.
   *Check:* `configs/grid.yaml` (48 runs), batch runner with pre-run cost & runtime estimation and resume support, `results/metrics.csv` (58 total runs analyzed, 75.9% decision accuracy, 0 false positives, 0% injection breach), 7 benchmark plots, Mann-Whitney U test results in `results/plots/statistical_tests.json`, empirical `results/SUMMARY.md`; 5 unit tests passing in `tests/test_full_evaluation.py`.
   *Done:* Executed full 48-run grid sweep with 0 failures, computed comprehensive metrics table, generated runtime/cost boxplots, persona recall, token usage, injection ablation, latency and step-type heatmaps, statistical tests, and comprehensive SUMMARY report.
-- [ ] **T31 Review console and UI** (Streamlit): live board, officer approval.
-- [ ] **T32 Cloud Run deployment** of all services; secrets in Secret Manager.
+- [x] **T31 Review console and UI** (Streamlit): live board, officer approval.
+  *Check:* Streamlit app in `src/onboardiq/ui/app.py` with client form (case/persona/mode/pattern/reasoning), live zoned blackboard inspector with masked PII, compliance officer review console with human override, full evaluation analytics dashboard, and OpenTelemetry provenance inspector; screenshot guide in `docs/submission/screenshots.md`; 2 unit tests passing in `tests/test_ui_app.py`.
+  *Done:* Implemented production-ready Streamlit console on port 8501 covering all 5 core views, zero-PII auditability, interactive human override buttons, and visualization of all benchmark sweeps.
+- [x] **T32 Cloud Run deployment** of all services; secrets in Secret Manager.
+  *Check:* `deploy/` with Dockerfiles for all 5 services, root `docker-compose.yml`, Firestore repository implementation `FirestoreBlackboardStore`, and `deploy/cloudrun.md` with step-by-step checklist; 3 unit tests passing in `tests/test_deploy.py`.
+  *Done:* Packaged microservices into individual Dockerfiles, implemented Cloud Firestore repository backend for serverless deployments, created root Docker Compose orchestration, and authored complete Cloud Run deployment guide with Secret Manager and zero-cost standby instructions.
 - [ ] **T33 Final report and presentation**; contribution matrix; viva preparation.
 
 ## Team rotation

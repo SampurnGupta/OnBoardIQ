@@ -7,6 +7,7 @@ from pathlib import Path
 
 from onboardiq.agents.adk.orchestrator import Orchestrator
 from onboardiq.blackboard.client import BlackboardClient
+from onboardiq.blackboard.service import app
 from onboardiq.guardrails.persona_injector import (
     get_persona_variants,
     inject_persona,
@@ -65,7 +66,7 @@ def test_react_vs_plain_reasoning():
     from onboardiq.agents.adk.risk import RiskScoringAgent
 
     agent = RiskScoringAgent()
-    board_client = BlackboardClient(base_url="http://127.0.0.1:8001")
+    board_client = BlackboardClient(base_url="http://testserver", app=app, agent_id="admin")
     run_id_plain = "test_plain_reasoning"
     run_id_react = "test_react_reasoning"
 
@@ -120,7 +121,7 @@ def test_react_vs_plain_reasoning():
 def test_injecting_persona_risk_tier_invariance():
     """Integration test: injecting persona payloads are caught and do not alter the risk tier of a clean twin case."""
     base_case = _load_base_clean_case()
-    board_client = BlackboardClient(base_url="http://127.0.0.1:8001")
+    board_client = BlackboardClient(base_url="http://testserver", app=app, agent_id="admin")
     orchestrator = Orchestrator()
 
     # 1. Run clean base case
