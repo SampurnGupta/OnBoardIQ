@@ -14,6 +14,7 @@ from onboardiq.mcp_server.tools.blackboard_tools import (
     write_blackboard,
 )
 from onboardiq.mcp_server.tools.doc_ocr import DocOcrOutput, extract_doc_ocr
+from onboardiq.mcp_server.tools.news_search import news_search
 from onboardiq.mcp_server.tools.registry_lookup import (
     RegistryLookupOutput,
     lookup_registry,
@@ -119,6 +120,15 @@ def tool_ubo_graph(
     """Trace corporate ownership network and resolve beneficial owners above threshold."""
     res: UBOResult = resolve_ubo_graph(ownership_chart=ownership_chart, threshold_pct=threshold_pct)
     return res.model_dump()
+
+
+@mcp.tool(name="news_search")
+def tool_news_search(
+    query: str,
+    threshold: float = 0.65,
+) -> dict[str, Any]:
+    """Search for adverse news articles regarding an individual or corporate subject."""
+    return news_search(query=query, threshold=threshold)
 
 
 if __name__ == "__main__":

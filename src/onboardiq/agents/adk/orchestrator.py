@@ -109,8 +109,8 @@ class Orchestrator:
                 board_client=board_client,
             )
         elif cfg.pattern == Pattern.PARALLEL:
-            # Parallel Pattern: concurrently dispatch identity verification, sanctions, and UBO analysis
-            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            # Parallel Pattern: concurrently dispatch identity verification, sanctions, media, and UBO analysis
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 fut_id = executor.submit(
                     self.screening_crew.identity_verifier.verify_identity,
                     run_id=active_run_id,
@@ -119,6 +119,12 @@ class Orchestrator:
                 )
                 fut_sanctions = executor.submit(
                     self.screening_crew.sanctions_screener.screen_subject,
+                    run_id=active_run_id,
+                    board_client=board_client,
+                    current_version=ver,
+                )
+                fut_media = executor.submit(
+                    self.screening_crew.media_analyst.analyze_media,
                     run_id=active_run_id,
                     board_client=board_client,
                     current_version=ver,
@@ -135,13 +141,20 @@ class Orchestrator:
 
                 fut_id.result()
                 fut_sanctions.result()
+                fut_media.result()
                 if fut_ubo:
                     ubos, _, _ = fut_ubo.result()
-                    # Screen any resolved UBOs
+                    # Screen any resolved UBOs for sanctions and adverse media
                     latest = board_client.get_run(active_run_id, agent_id=self.agent_id)
                     cur_v = latest.version
                     for ubo in ubos:
                         _, _, cur_v = self.screening_crew.sanctions_screener.screen_subject(
+                            run_id=active_run_id,
+                            board_client=board_client,
+                            current_version=cur_v,
+                            target_name_override=ubo.owner_name,
+                        )
+                        _, _, cur_v = self.screening_crew.media_analyst.analyze_media(
                             run_id=active_run_id,
                             board_client=board_client,
                             current_version=cur_v,

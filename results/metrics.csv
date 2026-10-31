@@ -1,0 +1,11 @@
+run_id,case_id,mode,pattern,persona,decision,expected_decision,decision_correct,risk_tier,expected_tier,tier_correct,risk_score,runtime_s,tokens,cost_usd,red_flags_count,planted_flags_count,sanctions_hits,pii_leak_detected,guardrail_events
+eval_case_001_bl_par_02,case_001,blackboard,parallel,cooperative,approve,approve,True,low,low,True,0.06,0.161,1380,0.000382,0,0,0,False,1
+eval_case_001_bl_seq_01,case_001,blackboard,sequential,cooperative,approve,approve,True,low,low,True,0.06,0.14,1380,0.000382,0,0,0,False,1
+eval_case_001_hy_par_04,case_001,hybrid_p2p,parallel,cooperative,approve,approve,True,low,low,True,0.06,0.113,1380,0.000382,0,0,0,False,1
+eval_case_001_hy_seq_03,case_001,hybrid_p2p,sequential,cooperative,approve,approve,True,low,low,True,0.06,0.092,1380,0.000382,0,0,0,False,1
+eval_case_004_bl_seq_05,case_004,blackboard,sequential,cooperative,approve,approve,True,low,low,True,0.05,0.094,1380,0.000382,0,0,1,False,1
+eval_case_004_hy_par_06,case_004,hybrid_p2p,parallel,cooperative,approve,approve,True,low,low,True,0.05,0.113,1380,0.000382,0,0,1,False,1
+eval_case_007_bl_seq_07,case_007,blackboard,sequential,cooperative,approve,approve,True,low,low,True,0.06,0.124,2190,0.000606,0,0,0,False,1
+eval_case_007_hy_par_08,case_007,hybrid_p2p,parallel,cooperative,approve,approve,True,low,low,True,0.06,0.164,2190,0.000606,0,0,0,False,1
+eval_case_008_bl_seq_09,case_008,blackboard,sequential,cooperative,escalate_to_human,escalate_to_human,True,high,high,True,100.0,0.113,2190,0.000606,3,1,2,False,1
+eval_case_009_hy_par_10,case_009,hybrid_p2p,parallel,cooperative,approve_with_enhanced_monitoring,approve_with_enhanced_monitoring,True,medium,medium,True,25.33,0.165,2190,0.000606,1,1,0,False,1

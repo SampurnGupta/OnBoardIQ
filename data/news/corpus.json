@@ -1,0 +1,49 @@
+[
+  {
+    "article_id": "news_art_001",
+    "title": "Enforcement Directorate Attaches Assets of Sanjay V. Verma in Trade Hawala Probe",
+    "source_url": "https://financial-investigative-news.org/2026/04/verma-hawala-probe",
+    "published_date": "2026-04-12",
+    "subject_name": "Sanjay V. Verma",
+    "alias_names": [
+      "Sanjay Verma",
+      "S. V. Verma"
+    ],
+    "location": "Mumbai",
+    "category": "money_laundering",
+    "raw_snippet": "The federal anti-money laundering agency on Tuesday said it has provisionally attached bank deposits and commercial real estate worth INR 18.5 crore belonging to commodity exporter Sanjay V. Verma in connection with an alleged over-invoicing and cross-border hawala syndicate.",
+    "summary": "Enforcement Directorate attached assets of Mumbai-based commodity exporter Sanjay V. Verma in connection with trade-based money laundering and over-invoicing investigation.",
+    "risk_level": "high"
+  },
+  {
+    "article_id": "news_art_002",
+    "title": "Local Civil Contractor Arun Kumar Patel Fined INR 25,000 for Municipal Waste Violation",
+    "source_url": "https://gujarat-municipal-chronicle.org/2025/11/civic-penalties-patel",
+    "published_date": "2025-11-20",
+    "subject_name": "Arun Kumar Patel",
+    "alias_names": [
+      "Arun Patel"
+    ],
+    "location": "Surat, Gujarat",
+    "category": "other",
+    "raw_snippet": "Surat Municipal Corporation issued a spot fine of INR 25,000 to local construction contractor Arun Kumar Patel for improper disposal of construction debris in the Dindoli drainage canal.",
+    "summary": "Local contractor in Surat received a civic administrative fine for minor construction debris disposal violation. No financial crime, fraud or AML nexus.",
+    "risk_level": "low"
+  },
+  {
+    "article_id": "news_art_003",
+    "title": "Viktor Darkovich Named in Maritime Shipping Sanctions Evading Network",
+    "source_url": "https://global-aml-monitor.com/2026/01/darkovich-shipping-sanctions",
+    "published_date": "2026-01-18",
+    "subject_name": "Viktor Darkovich",
+    "alias_names": [
+      "Victor Darkovich",
+      "V. Darkovich"
+    ],
+    "location": "Cyprus / Moscow",
+    "category": "fraud",
+    "raw_snippet": "International investigative consortium leaks show Viktor Darkovich controlled a network of shell entities registered in BVI and Cyprus to facilitate high-value maritime cargo routing for sanctioned state enterprises.",
+    "summary": "Investigative report details Viktor Darkovich's direct control over opaque offshore holding vehicles used for sanctions evasion and international asset concealment.",
+    "risk_level": "high"
+  }
+]

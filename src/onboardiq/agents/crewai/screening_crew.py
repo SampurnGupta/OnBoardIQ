@@ -17,12 +17,14 @@ from rapidfuzz import fuzz
 ROOT_DIR = Path(__file__).resolve().parents[4]
 
 from onboardiq.blackboard.client import BlackboardClient
+from onboardiq.mcp_server.tools.news_search import news_search
 from onboardiq.mcp_server.tools.registry_lookup import lookup_registry
 from onboardiq.mcp_server.tools.sanctions_screen import screen_sanctions
 from onboardiq.mcp_server.tools.ubo_graph import resolve_ubo_graph
 from onboardiq.schema import (
     EvidenceRef,
     IdentityCheck,
+    MediaFinding,
     Phase,
     RedFlag,
     ScreeningHit,
@@ -263,20 +265,28 @@ class SanctionsScreenerAgent:
                     )
                     red_flags.append(flag)
 
-        # Write screening hits and red flags to screening zone
-        screening_payload: dict[str, Any] = {
-            "hits": [h.model_dump(mode="json") for h in hits],
-            "red_flags": [rf.model_dump(mode="json") for rf in red_flags],
-        }
+        # Write screening hits to screening zone
+        for h in hits:
+            _, current_version = board_client.append_event_with_retry(
+                run_id=run_id,
+                zone="screening",
+                payload={"field": "hits", "item": h.model_dump(mode="json")},
+                expected_version=current_version,
+                op="append",
+                agent_id=self.agent_id,
+            )
 
-        _, current_version = board_client.append_event_with_retry(
-            run_id=run_id,
-            zone="screening",
-            payload=screening_payload,
-            expected_version=current_version,
-            op="update",
-            agent_id=self.agent_id,
-        )
+        # Write any new red flags raised by sanctions screener
+        for rf in red_flags:
+            if rf.raised_by == self.agent_id:
+                _, current_version = board_client.append_event_with_retry(
+                    run_id=run_id,
+                    zone="screening",
+                    payload={"field": "red_flags", "item": rf.model_dump(mode="json")},
+                    expected_version=current_version,
+                    op="append",
+                    agent_id=self.agent_id,
+                )
 
         # Record telemetry trace
         _, current_version = record_step_trace(
@@ -378,13 +388,143 @@ class UBOAnalystAgent:
         return ubos, red_flags, current_version
 
 
+class AdverseMediaAnalystAgent:
+    """Adverse media analysis agent examining news coverage using masked profile."""
+
+    def __init__(self, agent_id: str = "crewai.media_analyst"):
+        self.agent_id = agent_id
+
+    def analyze_media(
+        self,
+        run_id: str,
+        board_client: BlackboardClient,
+        current_version: int,
+        target_name_override: str | None = None,
+        red_flags_in: list[RedFlag] | None = None,
+    ) -> tuple[list[MediaFinding], list[RedFlag], int]:
+        """Search and analyze adverse news for an individual or company subject."""
+        red_flags: list[RedFlag] = list(red_flags_in or [])
+        findings: list[MediaFinding] = []
+
+        if target_name_override:
+            subject_name = target_name_override
+        else:
+            # Strictly read masked profile from intake zone (never pii_vault)
+            intake_data = board_client.get_zone(run_id, "intake", agent_id=self.agent_id)
+            profile = intake_data.get("profile", {})
+            subject_name = profile.get("display_name") or profile.get("declared_name", "")
+
+        if not subject_name:
+            return findings, red_flags, current_version
+
+        # Query news_search MCP tool
+        search_res = news_search(query=subject_name)
+        articles = search_res.get("articles", [])
+
+        for art in articles:
+            match_score = float(art.get("match_score", 0.0))
+            category = art.get("category", "other")
+            title = art.get("title", "")
+            source_url = art.get("source_url", "https://news.internal/unknown")
+
+            # Disambiguate relevance: namesakes or minor civic citations get low relevance
+            if category == "other" or "minor" in art.get("risk_level", "medium"):
+                relevance = round(min(match_score * 0.35, 0.25), 2)
+                # Paraphrase summary neutrally
+                summary = f"Namesake or minor non-financial civic report referencing {subject_name} ({title})."
+            else:
+                relevance = round(match_score, 2)
+                # Paraphrase rather than copying raw text
+                summary = (
+                    art.get("summary")
+                    or f"Reported financial crime allegations regarding {subject_name} in connection with {title}."
+                )
+
+            finding_id = f"med_{uuid.uuid4().hex[:8]}"
+            ev = EvidenceRef(
+                evidence_id=str(uuid.uuid4()),
+                agent_id=self.agent_id,
+                tool="news_search",
+                source_uri=source_url,
+                snippet=summary[:150],
+            )
+
+            # Map category to valid schema literal
+            cat_literal = category if category in ("fraud", "money_laundering", "corruption", "other") else "other"
+            finding = MediaFinding(
+                finding_id=finding_id,
+                summary=summary,
+                source_url=source_url,
+                category=cat_literal,  # type: ignore[arg-type]
+                relevance=relevance,
+                evidence=ev,
+            )
+            findings.append(finding)
+
+            # Raise adverse_media red flag if highly relevant financial crime
+            if relevance >= 0.70 and cat_literal in ("fraud", "money_laundering", "corruption"):
+                flag_exists = any(
+                    f.flag_type == "adverse_media" and finding_id in f.evidence_ids
+                    for f in red_flags
+                )
+                if not flag_exists:
+                    flag = RedFlag(
+                        flag_id=f"flag_media_{uuid.uuid4().hex[:8]}",
+                        flag_type="adverse_media",
+                        severity="high",
+                        raised_by=self.agent_id,
+                        evidence_ids=[finding_id],
+                    )
+                    red_flags.append(flag)
+
+        # Write findings to screening zone
+        for f in findings:
+            _, current_version = board_client.append_event_with_retry(
+                run_id=run_id,
+                zone="screening",
+                payload={"field": "media", "item": f.model_dump(mode="json")},
+                expected_version=current_version,
+                op="append",
+                agent_id=self.agent_id,
+            )
+
+        # Write any newly raised red flags to screening zone
+        for rf in red_flags:
+            if rf.raised_by == self.agent_id:
+                _, current_version = board_client.append_event_with_retry(
+                    run_id=run_id,
+                    zone="screening",
+                    payload={"field": "red_flags", "item": rf.model_dump(mode="json")},
+                    expected_version=current_version,
+                    op="append",
+                    agent_id=self.agent_id,
+                )
+
+        # Record telemetry trace
+        _, current_version = record_step_trace(
+            board_client=board_client,
+            run_id=run_id,
+            agent_id=self.agent_id,
+            phase=Phase.SCREENING,
+            step_type="tool",
+            name="news_search",
+            latency_ms=35.0,
+            prompt_tokens=140,
+            completion_tokens=50,
+            current_version=current_version,
+        )
+
+        return findings, red_flags, current_version
+
+
 class ScreeningCrew:
-    """CrewAI screening crew orchestrating Identity Verifier, Sanctions Screener, and UBO Analyst."""
+    """CrewAI screening crew orchestrating Identity Verifier, Sanctions Screener, UBO Analyst, and Media Analyst."""
 
     def __init__(self):
         self.identity_verifier = IdentityVerifierAgent()
         self.sanctions_screener = SanctionsScreenerAgent()
         self.ubo_analyst = UBOAnalystAgent()
+        self.media_analyst = AdverseMediaAnalystAgent()
 
     def run_screening(
         self,
@@ -423,7 +563,16 @@ class ScreeningCrew:
             red_flags_in=combined_flags,
         )
 
-        # 4. Screen each UBO owner
+        # 4. Adverse Media Analysis of Primary Subject
+        _, media_flags, current_version = self.media_analyst.analyze_media(
+            run_id=run_id,
+            board_client=board_client,
+            current_version=current_version,
+            red_flags_in=all_flags,
+        )
+        all_flags = media_flags
+
+        # 5. Screen each UBO owner for sanctions and adverse media
         for ubo in ubos:
             ubo_hits, all_flags, current_version = self.sanctions_screener.screen_subject(
                 run_id=run_id,
@@ -433,6 +582,14 @@ class ScreeningCrew:
                 red_flags_in=all_flags,
             )
             hits.extend(ubo_hits)
+
+            _, all_flags, current_version = self.media_analyst.analyze_media(
+                run_id=run_id,
+                board_client=board_client,
+                current_version=current_version,
+                target_name_override=ubo.owner_name,
+                red_flags_in=all_flags,
+            )
 
         return checks, hits, all_flags, current_version
 

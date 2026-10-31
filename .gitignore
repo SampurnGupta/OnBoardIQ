@@ -1,10 +1,27 @@
+# Environment & Secrets
 .env
+.env.local
+
+# Python artifacts
 *.pyc
 __pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
 .venv/
-results/
-data/docs/
-*.db
-.DS_Store
+
+# Testing & Linting
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+
+# Evaluation run dumps (keep metrics and plots)
+results/eval_*
+results/*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db

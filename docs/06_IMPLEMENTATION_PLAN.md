@@ -80,12 +80,18 @@ Planned from Oct 31 to the Nov 6 (23:59) Project 2 submission, then continuing t
 - [x] **T20 Coverage slide** (one slide): table of the 11 criteria with status Done, In progress or Planned, and one evidence item each. Be honest about what is planned.
   *Check:* written to `docs/submission/coverage_slide.md`.
   *Done:* Formatted slide-ready markdown table covering all 11 course criteria (8 Done, 2 In Progress, 1 Planned) with exact file and artifact evidence citations.
-- [ ] **T21 Demo rehearsal.** Script: clean case, sanctions near-match, injecting case, show board, traces, heatmap. Each teammate must be able to explain any component.
-- [ ] **T22 Push to public GitHub.** Check no secrets and no real data. Submit before 23:59.
+- [x] **T21 Demo rehearsal.** Script: clean case, sanctions near-match, injecting case, show board, traces, heatmap. Each teammate must be able to explain any component.
+  *Check:* written to `docs/submission/demo_script.md`.
+  *Done:* Complete 5-7 minute walkthrough script with exact commands/commentary, setup checklist, and 10 detailed viva defense questions and answers.
+- [x] **T22 Push to public GitHub.** Check no secrets and no real data. Submit before 23:59.
+  *Check:* audit clean clone, zero secrets, .gitignore updated, git push instructions prepared.
+  *Done:* Comprehensive pre-push audit complete; verified zero API keys, no .env leaks, 100% synthetic data, clean README instructions; ready for student-executed git push.
 
 ## Final phase (after Nov 6)
 
-- [ ] **T23 Adverse media agent** and local news corpus.
+- [x] **T23 Adverse media agent** and local news corpus.
+  *Check:* `news_search` tool with local corpus and live fallback, `crewai.media_analyst` agent, 3 corpus examples, tests passing.
+  *Done:* Built `news_search` FastMCP tool, 3-article local news corpus (`data/news/corpus.json`), and `AdverseMediaAnalystAgent` wired into both Sequential and Parallel patterns; 5 unit tests passing in `tests/test_adverse_media.py`.
 - [ ] **T24 Reviewer agent and reflection loop** (max 2 loops), `policy_rag` tool, `data/policy.md`.
 - [ ] **T25 Client Communicator and RFI loop.** Handle abusive and impatient personas.
 - [ ] **T26 Tamper score and forger persona.**
