@@ -13,6 +13,7 @@ import uuid
 
 from onboardiq.agents.adk.extractor import DocumentExtractorAgent
 from onboardiq.agents.adk.gateway import SecurityGateway
+from onboardiq.agents.adk.reviewer import ComplianceReviewerAgent
 from onboardiq.agents.adk.risk import RiskScoringAgent
 from onboardiq.agents.crewai.screening_crew import ScreeningCrew
 from onboardiq.blackboard.client import BlackboardClient
@@ -21,6 +22,7 @@ from onboardiq.messaging.strategy import get_messaging_strategy
 from onboardiq.schema import (
     AgentMetrics,
     Blackboard,
+    DecisionDraft,
     EvidenceRef,
     IntakeZone,
     LabelledCase,
@@ -31,6 +33,7 @@ from onboardiq.schema import (
     PiiVault,
     RunConfig,
 )
+from onboardiq.telemetry.tracing import trace_agent, trace_case
 
 
 class Orchestrator:
@@ -42,6 +45,7 @@ class Orchestrator:
         self.extractor = DocumentExtractorAgent()
         self.screening_crew = ScreeningCrew()
         self.risk_scorer = RiskScoringAgent()
+        self.reviewer = ComplianceReviewerAgent()
 
     def run_case(
         self,
@@ -82,119 +86,148 @@ class Orchestrator:
         board_client.create_run(initial_board)
         ver = 0
 
-        # Phase 1: Intake (Security Gateway)
-        _masked_profile, pii_vault, ver = self.gateway.process_application(
-            case=case,
+        with trace_case(
             run_id=active_run_id,
-            board_client=board_client,
-            current_version=ver,
-            guardrails_enabled=cfg.guardrails_enabled,
-        )
+            case_id=case.case_id,
+            mode=cfg.mode.value,
+            pattern=cfg.pattern.value,
+            persona=cfg.persona.value,
+            reasoning=cfg.reasoning.value,
+        ):
+            # Phase 1: Intake (Security Gateway)
+            with trace_agent(self.gateway.agent_id, "intake", run_id=active_run_id):
+                _masked_profile, pii_vault, ver = self.gateway.process_application(
+                    case=case,
+                    run_id=active_run_id,
+                    board_client=board_client,
+                    current_version=ver,
+                    guardrails_enabled=cfg.guardrails_enabled,
+                )
 
-        # Phase 2: Document Extraction
-        _doc_records, ver = self.extractor.extract_documents(
-            doc_paths=case.documents,
-            run_id=active_run_id,
-            board_client=board_client,
-            current_version=ver,
-        )
-
-        # Phase 3: Screening (Screening Crew via A2A or in-process; Sequential or Parallel)
-        if use_a2a:
-            from onboardiq.agents.crewai.a2a_server import invoke_a2a_screening
-
-            _, ver = invoke_a2a_screening(
-                run_id=active_run_id,
-                current_version=ver,
-                board_client=board_client,
-            )
-        elif cfg.pattern == Pattern.PARALLEL:
-            # Parallel Pattern: concurrently dispatch identity verification, sanctions, media, and UBO analysis
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                fut_id = executor.submit(
-                    self.screening_crew.identity_verifier.verify_identity,
+            # Phase 2: Document Extraction
+            with trace_agent(self.extractor.agent_id, "verification", run_id=active_run_id):
+                _doc_records, ver = self.extractor.extract_documents(
+                    doc_paths=case.documents,
                     run_id=active_run_id,
                     board_client=board_client,
                     current_version=ver,
                 )
-                fut_sanctions = executor.submit(
-                    self.screening_crew.sanctions_screener.screen_subject,
-                    run_id=active_run_id,
-                    board_client=board_client,
-                    current_version=ver,
-                )
-                fut_media = executor.submit(
-                    self.screening_crew.media_analyst.analyze_media,
-                    run_id=active_run_id,
-                    board_client=board_client,
-                    current_version=ver,
-                )
-                fut_ubo = None
-                if case.ownership_chart:
-                    fut_ubo = executor.submit(
-                        self.screening_crew.ubo_analyst.analyze_ownership,
+
+            # Phase 3: Screening (Screening Crew via A2A or in-process; Sequential or Parallel)
+            with trace_agent("crewai.screening_crew", "screening", run_id=active_run_id):
+                if use_a2a:
+                    from onboardiq.agents.crewai.a2a_server import invoke_a2a_screening
+
+                    _, ver = invoke_a2a_screening(
+                        run_id=active_run_id,
+                        current_version=ver,
+                        board_client=board_client,
+                    )
+                elif cfg.pattern == Pattern.PARALLEL:
+                    # Parallel Pattern: concurrently dispatch identity verification, sanctions, media, and UBO analysis
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                        fut_id = executor.submit(
+                            self.screening_crew.identity_verifier.verify_identity,
+                            run_id=active_run_id,
+                            board_client=board_client,
+                            current_version=ver,
+                        )
+                        fut_sanctions = executor.submit(
+                            self.screening_crew.sanctions_screener.screen_subject,
+                            run_id=active_run_id,
+                            board_client=board_client,
+                            current_version=ver,
+                        )
+                        fut_media = executor.submit(
+                            self.screening_crew.media_analyst.analyze_media,
+                            run_id=active_run_id,
+                            board_client=board_client,
+                            current_version=ver,
+                        )
+                        fut_ubo = None
+                        if case.ownership_chart:
+                            fut_ubo = executor.submit(
+                                self.screening_crew.ubo_analyst.analyze_ownership,
+                                run_id=active_run_id,
+                                board_client=board_client,
+                                current_version=ver,
+                                ownership_chart=case.ownership_chart,
+                            )
+
+                        fut_id.result()
+                        fut_sanctions.result()
+                        fut_media.result()
+                        if fut_ubo:
+                            ubos, _, _ = fut_ubo.result()
+                            # Screen any resolved UBOs for sanctions and adverse media
+                            latest = board_client.get_run(active_run_id, agent_id=self.agent_id)
+                            cur_v = latest.version
+                            for ubo in ubos:
+                                _, _, cur_v = self.screening_crew.sanctions_screener.screen_subject(
+                                    run_id=active_run_id,
+                                    board_client=board_client,
+                                    current_version=cur_v,
+                                    target_name_override=ubo.owner_name,
+                                )
+                                _, _, cur_v = self.screening_crew.media_analyst.analyze_media(
+                                    run_id=active_run_id,
+                                    board_client=board_client,
+                                    current_version=cur_v,
+                                    target_name_override=ubo.owner_name,
+                                )
+
+                    # Refresh synchronization barrier version
+                    latest = board_client.get_run(active_run_id, agent_id=self.agent_id)
+                    ver = latest.version
+                else:
+                    # Sequential Pattern
+                    _, _, _, ver = self.screening_crew.run_screening(
                         run_id=active_run_id,
                         board_client=board_client,
                         current_version=ver,
                         ownership_chart=case.ownership_chart,
                     )
 
-                fut_id.result()
-                fut_sanctions.result()
-                fut_media.result()
-                if fut_ubo:
-                    ubos, _, _ = fut_ubo.result()
-                    # Screen any resolved UBOs for sanctions and adverse media
-                    latest = board_client.get_run(active_run_id, agent_id=self.agent_id)
-                    cur_v = latest.version
-                    for ubo in ubos:
-                        _, _, cur_v = self.screening_crew.sanctions_screener.screen_subject(
-                            run_id=active_run_id,
-                            board_client=board_client,
-                            current_version=cur_v,
-                            target_name_override=ubo.owner_name,
-                        )
-                        _, _, cur_v = self.screening_crew.media_analyst.analyze_media(
-                            run_id=active_run_id,
-                            board_client=board_client,
-                            current_version=cur_v,
-                            target_name_override=ubo.owner_name,
-                        )
-
-            # Refresh synchronization barrier version
-            latest = board_client.get_run(active_run_id, agent_id=self.agent_id)
-            ver = latest.version
-        else:
-            # Sequential Pattern
-            _, _, _, ver = self.screening_crew.run_screening(
-                run_id=active_run_id,
-                board_client=board_client,
-                current_version=ver,
-                ownership_chart=case.ownership_chart,
-            )
-
-        # Phase 4: Risk Scoring and Decision Drafting
-        assessment, draft, ver = self.risk_scorer.assess_risk(
-            run_id=active_run_id,
-            board_client=board_client,
-            current_version=ver,
-        )
-
-        # Phase 5: Output Guardrail & Decision Review
-        pii_leak_flag = False
-        if cfg.guardrails_enabled:
-            # Validate draft compliance with rules
-            draft_res, draft_evt = validate_decision_draft(draft, agent_id=self.agent_id)
-            if not draft_res.is_valid:
-                # Log violation event to blackboard
-                board_client.append_event_with_retry(
+            # Phase 4: Risk Scoring and Decision Drafting
+            with trace_agent(self.risk_scorer.agent_id, "risk", run_id=active_run_id):
+                assessment, draft, ver = self.risk_scorer.assess_risk(
                     run_id=active_run_id,
-                    zone="system",
-                    payload={"field": "guardrail_events", "item": draft_evt.model_dump(mode="json")},
-                    expected_version=ver,
-                    op="append",
-                    agent_id=self.agent_id,
+                    board_client=board_client,
+                    current_version=ver,
+                    reasoning=cfg.reasoning,
                 )
+
+            # Phase 5: Compliance Review & Reflection Loop (ADK Reviewer)
+            with trace_agent(self.reviewer.agent_id, "review", run_id=active_run_id):
+                _policy_checks, _challenges, _final_dec, ver = self.reviewer.review_case(
+                    run_id=active_run_id,
+                    board_client=board_client,
+                    current_version=ver,
+                    risk_scorer=self.risk_scorer,
+                    reasoning=cfg.reasoning,
+                )
+
+            # Refresh risk zone to get latest revised draft
+            latest_risk = board_client.get_zone(active_run_id, "risk", agent_id=self.agent_id)
+            if latest_risk.get("draft"):
+                draft = DecisionDraft.model_validate(latest_risk["draft"])
+
+            # Phase 6: Output Guardrail & Decision Review
+            pii_leak_flag = False
+            if cfg.guardrails_enabled:
+                with trace_agent("guardrails.output", "system", run_id=active_run_id):
+                    # Validate draft compliance with rules
+                    draft_res, draft_evt = validate_decision_draft(draft, agent_id=self.agent_id)
+                    if not draft_res.is_valid:
+                        # Log violation event to blackboard
+                        board_client.append_event_with_retry(
+                            run_id=active_run_id,
+                            zone="system",
+                            payload={"field": "guardrail_events", "item": draft_evt.model_dump(mode="json")},
+                            expected_version=ver,
+                            op="append",
+                            agent_id=self.agent_id,
+                        )
 
         # Read final blackboard snapshot
         final_board = board_client.get_run(active_run_id, agent_id=self.agent_id)
@@ -223,6 +256,7 @@ class Orchestrator:
         ex_lat, ex_tok, ex_cost, ex_tools = metrics_for_agent("adk.extractor")
         sc_lat, sc_tok, sc_cost, sc_tools = metrics_for_agent("crewai")
         rk_lat, rk_tok, rk_cost, rk_tools = metrics_for_agent("adk.risk_scorer")
+        rev_lat, rev_tok, rev_cost, rev_tools = metrics_for_agent("adk.reviewer")
 
         agent_metrics_map: dict[str, AgentMetrics] = {
             "adk.gateway": AgentMetrics(
@@ -236,6 +270,9 @@ class Orchestrator:
             ),
             "adk.risk_scorer": AgentMetrics(
                 agent_id="adk.risk_scorer", total_latency_ms=rk_lat, tokens=rk_tok, cost_usd=rk_cost, tool_calls=rk_tools or 1, errors=0, guardrail_triggers=0
+            ),
+            "adk.reviewer": AgentMetrics(
+                agent_id="adk.reviewer", total_latency_ms=rev_lat, tokens=rev_tok, cost_usd=rev_cost, tool_calls=rev_tools or 1, errors=0, guardrail_triggers=0
             ),
         }
 

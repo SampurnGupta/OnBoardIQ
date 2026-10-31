@@ -64,6 +64,6 @@ def test_all_mode_and_pattern_combinations(mode: Mode, pattern: Pattern):
     assert report.decision.value == "approve"
     assert report.risk_tier.value == "low"
     assert report.total_runtime_s > 0
-    assert len(report.per_agent) == 4
+    assert len(report.per_agent) >= 4
     assert not report.pii_leak_detected
 

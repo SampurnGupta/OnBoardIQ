@@ -15,6 +15,7 @@ from onboardiq.mcp_server.tools.blackboard_tools import (
 )
 from onboardiq.mcp_server.tools.doc_ocr import DocOcrOutput, extract_doc_ocr
 from onboardiq.mcp_server.tools.news_search import news_search
+from onboardiq.mcp_server.tools.policy_rag import query_policy
 from onboardiq.mcp_server.tools.registry_lookup import (
     RegistryLookupOutput,
     lookup_registry,
@@ -129,6 +130,16 @@ def tool_news_search(
 ) -> dict[str, Any]:
     """Search for adverse news articles regarding an individual or corporate subject."""
     return news_search(query=query, threshold=threshold)
+
+
+@mcp.tool(name="policy_rag")
+def tool_policy_rag(
+    query: str,
+    rule_id: str | None = None,
+    top_k: int = 3,
+) -> dict[str, Any]:
+    """Retrieve compliance policy rules from data/policy.md via RAG."""
+    return query_policy(query=query, rule_id=rule_id, top_k=top_k)
 
 
 if __name__ == "__main__":

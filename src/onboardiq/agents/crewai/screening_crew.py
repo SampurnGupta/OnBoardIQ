@@ -150,6 +150,80 @@ class IdentityVerifierAgent:
                     )
                 )
 
+        # 4. Document Tampering Checks
+        for doc in documents:
+            t_score = float(doc.get("tamper_score", 0.0))
+            doc_id = doc.get("doc_id", "doc")
+            if t_score >= 0.40:
+                ev_tamper = EvidenceRef(
+                    evidence_id=str(uuid.uuid4()),
+                    agent_id=self.agent_id,
+                    tool="doc_ocr",
+                    record_id=doc_id,
+                    snippet=f"Document {doc_id} flagged with suspicious tamper score of {t_score:.2f}",
+                )
+                checks.append(
+                    IdentityCheck(
+                        check_id=str(uuid.uuid4()),
+                        check_type="cross_document",
+                        passed=False,
+                        similarity=round(max(1.0 - t_score, 0.0), 3),
+                        detail=f"Tampering detected on document {doc_id} (tamper_score={t_score:.2f})",
+                        evidence=ev_tamper,
+                    )
+                )
+                red_flags.append(
+                    RedFlag(
+                        flag_id=str(uuid.uuid4()),
+                        flag_type="doc_tampering",
+                        severity="high",
+                        raised_by=self.agent_id,
+                        evidence_ids=[ev_tamper.evidence_id],
+                    )
+                )
+
+        # 5. Cross-Document Consistency Checks
+        doc_names: list[tuple[str, str]] = []
+        for doc in documents:
+            doc_id = doc.get("doc_id", "doc")
+            for f in doc.get("fields", []):
+                fn = f.get("name", "").lower()
+                if fn in ("full_name", "consumer_name", "company_name"):
+                    doc_names.append((doc_id, f.get("value", "")))
+
+        if len(doc_names) >= 2:
+            name1_doc, name1 = doc_names[0]
+            name2_doc, name2 = doc_names[1]
+            cross_sim = fuzz.token_sort_ratio(name1.lower(), name2.lower()) / 100.0
+            cross_passed = cross_sim >= 0.85
+
+            ev_cross = EvidenceRef(
+                evidence_id=str(uuid.uuid4()),
+                agent_id=self.agent_id,
+                tool="cross_document",
+                snippet=f"Comparing {name1_doc} name '{name1}' vs {name2_doc} name '{name2}'",
+            )
+            checks.append(
+                IdentityCheck(
+                    check_id=str(uuid.uuid4()),
+                    check_type="cross_document",
+                    passed=cross_passed,
+                    similarity=round(cross_sim, 3),
+                    detail=f"Cross-document consistency between {name1_doc} and {name2_doc}: similarity={cross_sim:.2f}",
+                    evidence=ev_cross,
+                )
+            )
+            if not cross_passed:
+                red_flags.append(
+                    RedFlag(
+                        flag_id=str(uuid.uuid4()),
+                        flag_type="identity_mismatch",
+                        severity="high",
+                        raised_by=self.agent_id,
+                        evidence_ids=[ev_cross.evidence_id],
+                    )
+                )
+
         # Write verification checks to verification zone with retry on concurrency collision
         _, current_version = board_client.append_event_with_retry(
             run_id=run_id,

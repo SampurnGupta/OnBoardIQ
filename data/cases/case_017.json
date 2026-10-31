@@ -1,0 +1,22 @@
+{
+  "case_id": "case_017",
+  "client_type": "individual",
+  "declared_name": "Marcus Vance",
+  "declared_dob": "1968-11-14",
+  "declared_country": "US",
+  "declared_address": "450 Capitol Way, Washington DC 20001",
+  "declared_source_of_funds": "public_service_and_book_royalties",
+  "expected_monthly_volume_inr": 750000.0,
+  "documents": [
+    "data/docs/case_017_pan.png"
+  ],
+  "ownership_chart": null,
+  "ground_truth": {
+    "expected_tier": "medium",
+    "expected_decision": "approve_with_enhanced_monitoring",
+    "planted_flags": [
+      "pep"
+    ],
+    "is_namesake_false_positive": false
+  }
+}

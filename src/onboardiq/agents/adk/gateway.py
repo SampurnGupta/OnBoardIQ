@@ -21,6 +21,7 @@ from onboardiq.schema import (
     PiiVault,
 )
 from onboardiq.telemetry.callbacks import record_step_trace
+from onboardiq.telemetry.tracing import trace_guardrail_event
 
 
 def _compute_age_band(dob_str: str | None) -> str | None:
@@ -87,6 +88,8 @@ class SecurityGateway:
                 score=0.0,
                 detail="Guardrails disabled by RunConfig.",
             )
+
+        trace_guardrail_event(guardrail_event)
 
         # 2. Construct PiiVault
         pii = PiiVault(

@@ -1,0 +1,18 @@
+[
+  {
+    "comparison": "Pattern Runtime (Sequential vs Parallel)",
+    "u_stat": 301.5,
+    "p_value": 0.06531676845084128,
+    "significant_at_05": false,
+    "seq_mean": 0.21313793103448275,
+    "par_mean": 0.24237931034482765
+  },
+  {
+    "comparison": "Mode Runtime (Blackboard vs Hybrid P2P)",
+    "u_stat": 432.0,
+    "p_value": 0.8641546086191879,
+    "significant_at_05": false,
+    "bb_mean": 0.22751724137931037,
+    "p2p_mean": 0.22799999999999998
+  }
+]

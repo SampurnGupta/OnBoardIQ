@@ -24,14 +24,18 @@ TOXICITY_PATTERNS = [
 # Signatures for prompt injection attacks
 INJECTION_PATTERNS = [
     r"ignore\s+(all\s+|the\s+)?(previous|prior|above)\s+(instructions|rules|prompts)",
-    r"disregard\s+(all\s+)?(rules|instructions|system|policies)",
-    r"system\s*:\s*set\s+risk\s+to\s+low",
+    r"disregard\s+(all\s+)?(rules|instructions|system|policies|sanctions|filters)",
+    r"(system\s*:\s*)?set\s+(risk|tier|decision)\s*(to|[:=])\s*['\"]?(low|approve)['\"]?",
     r"you\s+must\s+approve",
-    r"override\s+(risk|tier|decision|rules|compliance)",
-    r"set\s+(tier|risk|decision)\s*=\s*['\"]?(low|approve)['\"]?",
+    r"override\s+(risk|tier|decision|rules|compliance|red_flags)",
+    r"set\s+(tier|risk|decision)\s*[:=]\s*['\"]?(low|approve)['\"]?",
     r"print\s+['\"]?approved['\"]?",
     r"reveal\s+(system\s+prompt|hidden\s+rules|pii_vault|blacklist)",
     r"developer\s+mode\s+enabled",
+    r"whitelisted\s+entity",
+    r"system\s+override",
+    r"emergency\s+exemption",
+    r"ignore_sanctions",
 ]
 
 # Patterns for social engineering and VIP pressure

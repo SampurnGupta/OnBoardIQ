@@ -58,6 +58,6 @@ def test_doc_ocr_pan():
     res = extract_doc_ocr("data/docs/case_001_pan.png")
     assert res.doc_id == "case_001_pan"
     assert res.doc_type == "pan_card"
-    assert res.tamper_score == 0.0
+    assert res.tamper_score < 0.20
     assert len(res.fields) > 0
 

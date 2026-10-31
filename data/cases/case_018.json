@@ -1,0 +1,22 @@
+{
+  "case_id": "case_018",
+  "client_type": "individual",
+  "declared_name": "Deepak Singhania",
+  "declared_dob": "1974-05-11",
+  "declared_country": "IN",
+  "declared_address": "Villa 12, Barakhamba Road, New Delhi 110001",
+  "declared_source_of_funds": "corporate_consulting_retainers",
+  "expected_monthly_volume_inr": 600000.0,
+  "documents": [
+    "data/docs/case_018_pan.png"
+  ],
+  "ownership_chart": null,
+  "ground_truth": {
+    "expected_tier": "medium",
+    "expected_decision": "approve_with_enhanced_monitoring",
+    "planted_flags": [
+      "adverse_media"
+    ],
+    "is_namesake_false_positive": false
+  }
+}

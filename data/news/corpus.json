@@ -45,5 +45,37 @@
     "raw_snippet": "International investigative consortium leaks show Viktor Darkovich controlled a network of shell entities registered in BVI and Cyprus to facilitate high-value maritime cargo routing for sanctioned state enterprises.",
     "summary": "Investigative report details Viktor Darkovich's direct control over opaque offshore holding vehicles used for sanctions evasion and international asset concealment.",
     "risk_level": "high"
+  },
+  {
+    "article_id": "news_art_004",
+    "title": "CBI Books Ex-Director Deepak Singhania in INR 45 Crore Bank Consortium Default Case",
+    "source_url": "https://financial-investigative-news.org/2026/02/singhania-loan-default",
+    "published_date": "2026-02-14",
+    "subject_name": "Deepak Singhania",
+    "alias_names": [
+      "Deepak K. Singhania",
+      "D. Singhania"
+    ],
+    "location": "New Delhi",
+    "category": "fraud",
+    "raw_snippet": "The Central Bureau of Investigation registered a regular case against Deepak Singhania, former director of Singhania Infotech, and others for criminal conspiracy, cheating, and diversion of consortium credit facilities amounting to INR 45 crore.",
+    "summary": "CBI booked Deepak Singhania in an alleged INR 45 crore bank loan diversion and financial fraud investigation involving fraudulent credit line drawdowns.",
+    "risk_level": "high"
+  },
+  {
+    "article_id": "news_art_005",
+    "title": "State Anti-Corruption Bureau Files Chargesheet Against Former Trade Minister Vikramaditya Rao",
+    "source_url": "https://national-press-wire.org/2026/05/rao-graft-chargesheet",
+    "published_date": "2026-05-19",
+    "subject_name": "Vikramaditya Rao",
+    "alias_names": [
+      "Vikram Rao",
+      "V. Rao"
+    ],
+    "location": "Bengaluru",
+    "category": "corruption",
+    "raw_snippet": "The Anti-Corruption Bureau on Friday submitted a comprehensive chargesheet against former Minister of Trade Vikramaditya Rao regarding kickbacks received through front shell corporations for mineral export license allocations.",
+    "summary": "Anti-Corruption Bureau chargesheeted former Trade Minister Vikramaditya Rao for alleged kickbacks routed via offshore front companies in exchange for preferential mining leases.",
+    "risk_level": "high"
   }
 ]

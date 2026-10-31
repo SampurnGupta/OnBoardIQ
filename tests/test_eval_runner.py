@@ -41,7 +41,6 @@ runs:
     # Verify plots generation
     plots_dir = out_dir / "plots"
     plots = generate_plots(results_dir=out_dir, metrics_csv=metrics_csv, plots_dir=plots_dir)
-    assert len(plots) == 2
-    assert (plots_dir / "runtime_by_pattern.png").exists()
-    assert (plots_dir / "agent_phase_heatmap.png").exists()
+    assert len(plots) >= 2
+    assert (plots_dir / "runtime_and_cost_boxplots.png").exists()
 

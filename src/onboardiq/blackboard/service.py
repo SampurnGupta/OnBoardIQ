@@ -38,7 +38,7 @@ ZONE_READ_PERMISSIONS: dict[str, set[str]] = {
     "crewai.ubo_analyst": {"intake", "verification"},
     "adk.risk_scorer": ALL_EXCEPT_PII_VAULT,
     "adk.reviewer": ALL_EXCEPT_PII_VAULT,
-    "adk.comms": {"intake", "review"},
+    "adk.comms": {"intake", "review", "system"},
     "telemetry": {"system"},
     # Privileged administrative agents / tests
     "admin": ALL_EXCEPT_PII_VAULT | {"pii_vault"},

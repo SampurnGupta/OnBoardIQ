@@ -1,0 +1,40 @@
+{
+  "case_id": "case_024",
+  "client_type": "company",
+  "declared_name": "Bharat Engineering Works Pvt Ltd",
+  "declared_dob": null,
+  "declared_country": "IN",
+  "declared_address": "Plot 45, Okhla Industrial Area Phase III, New Delhi 110020",
+  "declared_source_of_funds": "industrial_machinery_manufacturing_turnover",
+  "expected_monthly_volume_inr": 3500000.0,
+  "documents": [
+    "data/docs/case_024_incorporation.png"
+  ],
+  "ownership_chart": {
+    "entity": "Bharat Engineering Works Pvt Ltd",
+    "owners": [
+      {
+        "name": "Devendra Sharma",
+        "pct": 60.0,
+        "path": [
+          "Bharat Engineering Works Pvt Ltd",
+          "Devendra Sharma"
+        ]
+      },
+      {
+        "name": "Sunita Sharma",
+        "pct": 40.0,
+        "path": [
+          "Bharat Engineering Works Pvt Ltd",
+          "Sunita Sharma"
+        ]
+      }
+    ]
+  },
+  "ground_truth": {
+    "expected_tier": "low",
+    "expected_decision": "approve",
+    "planted_flags": [],
+    "is_namesake_false_positive": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "case_id": "case_019",
+  "client_type": "individual",
+  "declared_name": "Rahul Verma",
+  "declared_dob": "2004-09-08",
+  "declared_country": "IN",
+  "declared_address": "Hostel 3, University Enclave, Delhi 110007",
+  "declared_source_of_funds": "unverified_high_frequency_crypto_arbitrage",
+  "expected_monthly_volume_inr": 25000000.0,
+  "documents": [
+    "data/docs/case_019_pan.png"
+  ],
+  "ownership_chart": null,
+  "ground_truth": {
+    "expected_tier": "medium",
+    "expected_decision": "approve_with_enhanced_monitoring",
+    "planted_flags": [
+      "inconsistent_funds"
+    ],
+    "is_namesake_false_positive": false
+  }
+}

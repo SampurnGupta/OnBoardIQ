@@ -73,7 +73,7 @@ def test_screening_crew_full_workflow():
     # Check that verification checks have evidence refs
     for chk in checks:
         assert chk.evidence.agent_id == "crewai.identity_verifier"
-        assert chk.evidence.tool == "registry_lookup"
+        assert chk.evidence.tool in ("registry_lookup", "cross_document", "doc_ocr")
 
     # Verify blackboard zones are updated
     ver_zone = board_client.get_zone(board.run_id, "verification", agent_id="adk.orchestrator")

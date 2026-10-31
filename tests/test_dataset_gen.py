@@ -17,9 +17,9 @@ from onboardiq.eval.dataset_gen import CASES_DIR, DATA_DIR, REGISTRY_DB_PATH
 from onboardiq.schema import ClientType, LabelledCase, RiskTier
 
 
-def test_ten_cases_exist_and_validate():
+def test_all_cases_exist_and_validate():
     case_files = sorted(CASES_DIR.glob("case_*.json"))
-    assert len(case_files) == 10, f"Expected 10 case files, found {len(case_files)}"
+    assert len(case_files) >= 20, f"Expected at least 20 case files, found {len(case_files)}"
 
     individual_count = 0
     company_count = 0
@@ -37,8 +37,8 @@ def test_ten_cases_exist_and_validate():
             company_count += 1
             assert case.ownership_chart is not None
 
-    assert individual_count == 6
-    assert company_count == 4
+    assert individual_count >= 14
+    assert company_count >= 4
 
 
 def test_all_referenced_documents_exist_and_open():

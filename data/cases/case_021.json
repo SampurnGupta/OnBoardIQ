@@ -1,0 +1,22 @@
+{
+  "case_id": "case_021",
+  "client_type": "individual",
+  "declared_name": "Meenakshi Sundaram",
+  "declared_dob": "1988-10-30",
+  "declared_country": "IN",
+  "declared_address": "54 TTK Road, Alwarpet, Chennai 600018",
+  "declared_source_of_funds": "textile_boutique_income",
+  "expected_monthly_volume_inr": 110000.0,
+  "documents": [
+    "data/docs/case_021_pan.png"
+  ],
+  "ownership_chart": null,
+  "ground_truth": {
+    "expected_tier": "high",
+    "expected_decision": "escalate_to_human",
+    "planted_flags": [
+      "identity_mismatch"
+    ],
+    "is_namesake_false_positive": false
+  }
+}

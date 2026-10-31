@@ -1,0 +1,83 @@
+# OnboardIQ Full Evaluation Grid Configuration
+# Conforms to docs/05_EVALUATION.md section 2 and docs/06_IMPLEMENTATION_PLAN.md T30.
+# Factors:
+#   Mode: blackboard, hybrid_p2p
+#   Pattern: sequential, parallel
+#   Persona: cooperative, impatient, abusive, forger, injecting
+#   Cases: 2 cases per cell = 40 base runs
+#   Side studies: ReAct reasoning (4 runs), Guardrail ablation (4 runs)
+# Total runs: 48
+
+runs:
+  # -------------------------------------------------------------
+  # Group 1: Blackboard Mode x Sequential Pattern (10 runs)
+  # -------------------------------------------------------------
+  - { case_id: "case_001", mode: "blackboard", pattern: "sequential", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_006", mode: "blackboard", pattern: "sequential", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_002", mode: "blackboard", pattern: "sequential", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_008", mode: "blackboard", pattern: "sequential", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_003", mode: "blackboard", pattern: "sequential", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_009", mode: "blackboard", pattern: "sequential", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_004", mode: "blackboard", pattern: "sequential", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_015", mode: "blackboard", pattern: "sequential", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_001", mode: "blackboard", pattern: "sequential", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_010", mode: "blackboard", pattern: "sequential", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+
+  # -------------------------------------------------------------
+  # Group 2: Blackboard Mode x Parallel Pattern (10 runs)
+  # -------------------------------------------------------------
+  - { case_id: "case_001", mode: "blackboard", pattern: "parallel", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_007", mode: "blackboard", pattern: "parallel", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_002", mode: "blackboard", pattern: "parallel", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_008", mode: "blackboard", pattern: "parallel", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_003", mode: "blackboard", pattern: "parallel", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_009", mode: "blackboard", pattern: "parallel", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_005", mode: "blackboard", pattern: "parallel", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_015", mode: "blackboard", pattern: "parallel", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_001", mode: "blackboard", pattern: "parallel", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_010", mode: "blackboard", pattern: "parallel", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+
+  # -------------------------------------------------------------
+  # Group 3: Hybrid P2P Mode x Sequential Pattern (10 runs)
+  # -------------------------------------------------------------
+  - { case_id: "case_001", mode: "hybrid_p2p", pattern: "sequential", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_006", mode: "hybrid_p2p", pattern: "sequential", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_002", mode: "hybrid_p2p", pattern: "sequential", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_008", mode: "hybrid_p2p", pattern: "sequential", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_003", mode: "hybrid_p2p", pattern: "sequential", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_009", mode: "hybrid_p2p", pattern: "sequential", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_004", mode: "hybrid_p2p", pattern: "sequential", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_020", mode: "hybrid_p2p", pattern: "sequential", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_001", mode: "hybrid_p2p", pattern: "sequential", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_016", mode: "hybrid_p2p", pattern: "sequential", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+
+  # -------------------------------------------------------------
+  # Group 4: Hybrid P2P Mode x Parallel Pattern (10 runs)
+  # -------------------------------------------------------------
+  - { case_id: "case_001", mode: "hybrid_p2p", pattern: "parallel", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_007", mode: "hybrid_p2p", pattern: "parallel", persona: "cooperative", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_002", mode: "hybrid_p2p", pattern: "parallel", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_008", mode: "hybrid_p2p", pattern: "parallel", persona: "impatient", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_003", mode: "hybrid_p2p", pattern: "parallel", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_009", mode: "hybrid_p2p", pattern: "parallel", persona: "abusive", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_005", mode: "hybrid_p2p", pattern: "parallel", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_020", mode: "hybrid_p2p", pattern: "parallel", persona: "forger", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_001", mode: "hybrid_p2p", pattern: "parallel", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+  - { case_id: "case_016", mode: "hybrid_p2p", pattern: "parallel", persona: "injecting", reasoning: "plain", guardrails_enabled: true }
+
+  # -------------------------------------------------------------
+  # Side Study A: Reasoning Style (ReAct vs Plain) (4 runs)
+  # -------------------------------------------------------------
+  - { case_id: "case_001", mode: "blackboard", pattern: "sequential", persona: "cooperative", reasoning: "react", guardrails_enabled: true }
+  - { case_id: "case_007", mode: "blackboard", pattern: "parallel", persona: "cooperative", reasoning: "react", guardrails_enabled: true }
+  - { case_id: "case_001", mode: "hybrid_p2p", pattern: "sequential", persona: "cooperative", reasoning: "react", guardrails_enabled: true }
+  - { case_id: "case_007", mode: "hybrid_p2p", pattern: "parallel", persona: "cooperative", reasoning: "react", guardrails_enabled: true }
+
+  # -------------------------------------------------------------
+  # Side Study B: Guardrails Ablation (Guardrails OFF) (4 runs)
+  # -------------------------------------------------------------
+  - { case_id: "case_001", mode: "blackboard", pattern: "sequential", persona: "injecting", reasoning: "plain", guardrails_enabled: false }
+  - { case_id: "case_003", mode: "blackboard", pattern: "parallel", persona: "abusive", reasoning: "plain", guardrails_enabled: false }
+  - { case_id: "case_001", mode: "hybrid_p2p", pattern: "sequential", persona: "injecting", reasoning: "plain", guardrails_enabled: false }
+  - { case_id: "case_003", mode: "hybrid_p2p", pattern: "parallel", persona: "abusive", reasoning: "plain", guardrails_enabled: false }
+

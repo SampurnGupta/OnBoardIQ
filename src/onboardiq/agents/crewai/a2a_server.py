@@ -11,12 +11,13 @@ import uuid
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from onboardiq.agents.crewai.screening_crew import ScreeningCrew
 from onboardiq.blackboard.client import BlackboardClient
 from onboardiq.schema import Phase, StepTrace
+from onboardiq.telemetry.tracing import extract_trace_context, inject_trace_context, trace_agent
 
 app = FastAPI(title="OnboardIQ CrewAI A2A Screening Service", version="0.1.0")
 
@@ -96,17 +97,21 @@ def get_board_client(agent_id: str = "adk.orchestrator") -> BlackboardClient:
 
 
 @app.post("/a2a/screening", response_model=A2AScreeningResponse)
-def handle_screening_call(req: A2AScreeningRequest) -> A2AScreeningResponse:
+def handle_screening_call(req: A2AScreeningRequest, request: Request) -> A2AScreeningResponse:
     """A2A RPC endpoint invoked by ADK Orchestrator to dispatch screening."""
     board_client = get_board_client(agent_id=req.agent_id)
     crew = ScreeningCrew()
 
+    headers = dict(request.headers) if request is not None else {}
+    _ = extract_trace_context(headers)
+
     try:
-        checks, hits, flags, new_ver = crew.run_screening(
-            run_id=req.run_id,
-            board_client=board_client,
-            current_version=req.current_version,
-        )
+        with trace_agent("crewai.screening_crew", "screening", run_id=req.run_id):
+            checks, hits, flags, new_ver = crew.run_screening(
+                run_id=req.run_id,
+                board_client=board_client,
+                current_version=req.current_version,
+            )
         return A2AScreeningResponse(
             status="success",
             run_id=req.run_id,
@@ -140,6 +145,10 @@ def invoke_a2a_screening(
     res = None
     new_version = current_version
 
+    # Inject trace context into headers
+    req_headers: dict[str, str] = {}
+    inject_trace_context(req_headers)
+
     # If app passed directly for in-memory testing or transport
     if transport is not None:
         from starlette.testclient import TestClient
@@ -148,6 +157,7 @@ def invoke_a2a_screening(
         resp = client.post(
             "/a2a/screening",
             json={"run_id": run_id, "current_version": current_version, "agent_id": "adk.orchestrator"},
+            headers=req_headers,
         )
         resp.raise_for_status()
         res = A2AScreeningResponse.model_validate(resp.json())
@@ -157,6 +167,7 @@ def invoke_a2a_screening(
             resp = client.post(
                 "/a2a/screening",
                 json={"run_id": run_id, "current_version": current_version, "agent_id": "adk.orchestrator"},
+                headers=req_headers,
             )
             resp.raise_for_status()
             res = A2AScreeningResponse.model_validate(resp.json())

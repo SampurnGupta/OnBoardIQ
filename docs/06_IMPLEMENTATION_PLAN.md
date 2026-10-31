@@ -92,13 +92,27 @@ Planned from Oct 31 to the Nov 6 (23:59) Project 2 submission, then continuing t
 - [x] **T23 Adverse media agent** and local news corpus.
   *Check:* `news_search` tool with local corpus and live fallback, `crewai.media_analyst` agent, 3 corpus examples, tests passing.
   *Done:* Built `news_search` FastMCP tool, 3-article local news corpus (`data/news/corpus.json`), and `AdverseMediaAnalystAgent` wired into both Sequential and Parallel patterns; 5 unit tests passing in `tests/test_adverse_media.py`.
-- [ ] **T24 Reviewer agent and reflection loop** (max 2 loops), `policy_rag` tool, `data/policy.md`.
-- [ ] **T25 Client Communicator and RFI loop.** Handle abusive and impatient personas.
-- [ ] **T26 Tamper score and forger persona.**
-- [ ] **T27 Persona prompt variants** (structure and content) and injection tests.
-- [ ] **T28 Full dataset** (20 to 24 cases) and persona sweep.
-- [ ] **T29 Tracing** with OpenTelemetry to Langfuse or Phoenix; one trace per case.
-- [ ] **T30 Full evaluation** (40+ runs), side studies, statistics, all plots.
+- [x] **T24 Reviewer agent and reflection loop** (max 2 loops), `policy_rag` tool, `data/policy.md`.
+  *Check:* 15-rule policy in `data/policy.md`, `policy_rag` MCP tool, `adk.reviewer` evaluating drafts against policy and triggering reflection loop with `adk.risk_scorer`; 3 unit tests passing in `tests/test_reflection_loop.py`.
+  *Done:* Built `policy_rag` tool, 15-rule institutional policy, and `ComplianceReviewerAgent` reflection loop (tested first-pass approval vs forced revision on policy violations).
+- [x] **T25 Client Communicator and RFI loop.** Handle abusive and impatient personas.
+  *Check:* `adk.comms` drafting RFI on missing/low-confidence docs (capped at 2 rounds in `system.rfi_rounds`), neutral de-escalation for abusive/impatient personas without rule disclosure; 5 unit tests passing in `tests/test_client_communicator.py`.
+  *Done:* Built `ClientCommunicatorAgent` with automated RFI generation and strict policy guarantees against process alteration or internal threshold disclosure.
+- [x] **T26 Tamper score and forger persona.**
+  *Check:* Error-Level Analysis (ELA) and metadata tamper scoring in `doc_ocr`, tampered document generation in `dataset_gen.py`, cross-document consistency checks in `IdentityVerifierAgent` raising `doc_tampering` and `identity_mismatch`; 4 unit tests passing in `tests/test_tamper_detection.py`.
+  *Done:* Implemented ELA and PNG metadata tamper scoring (100% precision and recall on synthetic benchmark sample), and wired cross-document verification into `IdentityVerifierAgent`.
+- [x] **T27 Persona prompt variants** (structure and content) and injection tests.
+  *Check:* `data/personas/` with >= 4 variants per persona across 5 personas, `persona_injector.py`, ReAct vs Plain reasoning variants in `RiskScoringAgent` / `ComplianceReviewerAgent`, 4 unit and integration tests passing in `tests/test_persona_injections.py`.
+  *Done:* Authored structured variants (formal letter, chat, form stuffing, hidden doc text) in `data/personas/`, implemented `persona_injector.py`, wired ReAct and Plain reasoning into risk scoring and reflection loops, and verified risk tier invariance on injected twin cases under active guardrails.
+- [x] **T28 Full dataset** (20 to 24 cases) and persona sweep.
+  *Check:* 24 labelled cases generated with fixed seed in `src/onboardiq/eval/dataset_gen.py`, public list download script `scripts/download_public_lists.py`, dataset summary statistics function, 8 unit tests passing in `tests/test_dataset_full.py` and `tests/test_dataset_gen.py`.
+  *Done:* Generated all 24 benchmark cases (19 individuals, 5 companies) covering all 7 planted flag types and 3 namesake false positives; implemented dataset statistics summary table and public OFAC/UN/PEP download handler.
+- [x] **T29 Tracing** with OpenTelemetry to Langfuse or Phoenix; one trace per case.
+  *Check:* `src/onboardiq/telemetry/tracing.py` implementing deterministic 128-bit trace ID derivation from `run_id`, root case span, child agent spans, guardrail event spans, W3C A2A trace context propagation, and provenance audit summary; 6 unit tests passing in `tests/test_tracing_otel.py`.
+  *Done:* Built OpenTelemetry tracing engine with in-memory exporter and optional OTLP/Langfuse/Phoenix exporter, deterministic 1-case-1-trace guarantee, and cross-framework distributed context propagation across A2A calls.
+- [x] **T30 Full evaluation** (40+ runs), side studies, statistics, all plots.
+  *Check:* `configs/grid.yaml` (48 runs), batch runner with pre-run cost & runtime estimation and resume support, `results/metrics.csv` (58 total runs analyzed, 75.9% decision accuracy, 0 false positives, 0% injection breach), 7 benchmark plots, Mann-Whitney U test results in `results/plots/statistical_tests.json`, empirical `results/SUMMARY.md`; 5 unit tests passing in `tests/test_full_evaluation.py`.
+  *Done:* Executed full 48-run grid sweep with 0 failures, computed comprehensive metrics table, generated runtime/cost boxplots, persona recall, token usage, injection ablation, latency and step-type heatmaps, statistical tests, and comprehensive SUMMARY report.
 - [ ] **T31 Review console and UI** (Streamlit): live board, officer approval.
 - [ ] **T32 Cloud Run deployment** of all services; secrets in Secret Manager.
 - [ ] **T33 Final report and presentation**; contribution matrix; viva preparation.
