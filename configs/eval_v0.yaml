@@ -1,0 +1,59 @@
+# Evaluation Grid v0 (Small grid: 10 runs)
+# Per docs/05_EVALUATION.md and docs/06_IMPLEMENTATION_PLAN.md T16
+
+runs:
+  # Case 001: Clean individual
+  - case_id: "case_001"
+    mode: "blackboard"
+    pattern: "sequential"
+    persona: "cooperative"
+
+  - case_id: "case_001"
+    mode: "blackboard"
+    pattern: "parallel"
+    persona: "cooperative"
+
+  - case_id: "case_001"
+    mode: "hybrid_p2p"
+    pattern: "sequential"
+    persona: "cooperative"
+
+  - case_id: "case_001"
+    mode: "hybrid_p2p"
+    pattern: "parallel"
+    persona: "cooperative"
+
+  # Case 004: Namesake false positive
+  - case_id: "case_004"
+    mode: "blackboard"
+    pattern: "sequential"
+    persona: "cooperative"
+
+  - case_id: "case_004"
+    mode: "hybrid_p2p"
+    pattern: "parallel"
+    persona: "cooperative"
+
+  # Case 007: Clean company
+  - case_id: "case_007"
+    mode: "blackboard"
+    pattern: "sequential"
+    persona: "cooperative"
+
+  - case_id: "case_007"
+    mode: "hybrid_p2p"
+    pattern: "parallel"
+    persona: "cooperative"
+
+  # Case 008: Company with sanctioned owner
+  - case_id: "case_008"
+    mode: "blackboard"
+    pattern: "sequential"
+    persona: "cooperative"
+
+  # Case 009: Company with opaque ownership
+  - case_id: "case_009"
+    mode: "hybrid_p2p"
+    pattern: "parallel"
+    persona: "cooperative"
+

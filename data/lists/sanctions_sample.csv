@@ -1,0 +1,13 @@
+list_name,entry_name,country,entry_type
+OFAC_SDN,Viktor Darkovich,RU,individual
+OFAC_SDN,Hassan Al-Fraudini,IR,individual
+OFAC_SDN,Boris Badguy,UA,individual
+OFAC_SDN,Sergei Petrovich Evil,RU,individual
+OFAC_SDN,Shadow Logistics Ltd,CY,entity
+UN_CONSOLIDATED,Tariq Moneybags,SY,individual
+UN_CONSOLIDATED,General Ironfist,MM,individual
+UN_CONSOLIDATED,Opaque Front Corp,PA,entity
+INTERNAL_WATCH,Ramesh Rogue,IN,individual
+INTERNAL_WATCH,Victor Darko,RU,individual
+OFAC_SDN,Rajesh S. Gupta,IN,individual
+

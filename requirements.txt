@@ -1,0 +1,54 @@
+# Unpinned on purpose. After your first working install run: pip freeze > requirements.lock
+# and pin the key packages here. Check current docs for versions that work together.
+
+# Agent frameworks (only these two are allowed)
+crewai
+crewai-tools
+google-adk
+a2a-sdk
+
+# MCP
+fastmcp
+mcp
+
+# Core
+pydantic>=2
+fastapi
+uvicorn
+httpx
+python-dotenv
+pyyaml
+
+# Tools and ML
+rapidfuzz
+scikit-learn
+networkx
+pytesseract
+pillow
+pypdf
+faker
+chromadb
+sentence-transformers
+detoxify
+
+# Storage and cloud
+google-cloud-firestore
+
+# Observability
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+langfuse
+openinference-instrumentation-crewai
+openinference-instrumentation-google-adk
+
+# Evaluation and UI
+pandas
+numpy
+scipy
+matplotlib
+seaborn
+streamlit
+
+# Dev
+pytest
+ruff

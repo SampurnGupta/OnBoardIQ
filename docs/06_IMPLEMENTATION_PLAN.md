@@ -1,0 +1,108 @@
+# 06 - Implementation Plan and Task Checklist
+
+Planned from Oct 31 to the Nov 6 (23:59) Project 2 submission, then continuing to the final phase. Tick boxes as you finish. Do one task at a time.
+
+**Project 2 submission needs:** updated problem statement, updated project plan, work-in-progress report, code, and a one-slide PPT showing coverage of the project so far vs the criteria.
+
+**Minimum viable demo for Nov 6:** one individual and one company case; both messaging modes; ADK to CrewAI over A2A; MCP tools (registry, sanctions, OCR, risk model); blackboard with zones; guardrails for injection, toxicity and PII; callbacks writing traces; first batch of runs with a preliminary boxplot.
+
+## Day 1 (Oct 31 - Nov 1): Foundations
+
+- [x] **T01 Project skeleton.** Folders as in `docs/03_ARCHITECTURE.md` section 11, `pyproject` or `requirements.txt`, `.gitignore`, `.env.example`, ruff and pytest config.
+  *Check:* `pytest` runs (even with zero tests) and `ruff check .` passes.
+  *Done:* All directories and placeholder files created per architecture §11. `pytest` 3 passed, `ruff check .` all clean. Ruff auto-fixed `Optional` → `X | None` style in schema.py.
+- [x] **T02 Schema.** Review `src/onboardiq/schema.py`, add `RunConfig` and `LabelledCase`, write validator tests.
+  *Check:* tests for `DecisionDraft`, `PiiVault`, `Blackboard` round-trip pass.
+  *Done:* 20 tests covering DecisionDraft validators, PiiVault defaults, Blackboard JSON round-trip, RunConfig defaults, LabelledCase validation, EvidenceRef. All pass. Ruff clean.
+- [x] **T03 Blackboard service.** FastAPI app, SQLite store, zone access table, versioned append-only events, client library.
+  *Check:* tests for read/write, 403 on forbidden zone, 409 on stale version.
+  *Done:* FastAPI service in `blackboard/service.py`, `SQLiteBlackboardStore` in `store.py`, `BlackboardClient` in `client.py`. 6 unit tests passing (read/write, 403 + GuardrailEvent, 409 concurrency, event ordering, client). Ruff clean.
+- [x] **T04 Synthetic data generator (first 10 cases).** Faker applicants, PIL document images, mock registry DB, planted flags with ground truth.
+  *Check:* 10 case JSON files validate; images open; registry contains clean cases.
+  *Done:* Generated 10 benchmark cases in `data/cases/`, rendered document images in `data/docs/`, mock registry in `data/registry.db`, sanctions/PEP sample lists. 4 unit tests passing, ruff clean.
+
+## Day 2 (Nov 2): Tools and first ADK agents
+
+- [x] **T05 MCP tool server.** FastMCP with `registry_lookup`, `sanctions_screen`, `doc_ocr`, `blackboard_read/write`.
+  *Check:* MCP inspector or a client script lists tools and calls each successfully.
+  *Done:* FastMCP server in `mcp_server/server.py` with modular tools in `mcp_server/tools/`. `scripts/mcp_smoke_test.py` passed; 7 unit tests pass; ruff clean.
+- [x] **T06 ADK extractor and gateway (basic).** Gateway writes `intake` and `pii_vault`; extractor reads documents via MCP and writes fields.
+  *Check:* one case produces `DocumentRecord` entries on the board.
+  *Done:* Built `agents/adk/gateway.py` and `extractor.py`. `scripts/run_t06.py` produces DocumentRecord entries with EvidenceRef on the board. Unit tests pass.
+
+## Day 3 (Nov 3): CrewAI crew and A2A
+
+- [x] **T07 CrewAI screening crew.** Identity Verifier and Sanctions Screener first, using MCP tools and writing to the board.
+  *Check:* crew runs standalone on one case and writes `IdentityCheck` and `ScreeningHit`.
+  *Done:* Built `agents/crewai/screening_crew.py`. `scripts/run_t07.py` runs standalone on benchmark cases writing IdentityCheck and ScreeningHit records with EvidenceRef. Tests pass.
+- [x] **T08 A2A link.** Wrap crew in an A2A server with an Agent Card; ADK orchestrator calls it through a remote A2A client.
+  *Check:* orchestrator triggers the crew over A2A; Agent Card fetchable; call visible in logs. Note exact library versions used.
+  *Done:* Built `agents/crewai/a2a_server.py`. Agent Card published at `/.well-known/agent.json`. Remote A2A invocation verified with StepTrace recorded in system zone. Unit tests pass.
+- [x] **T09 Orchestrator (sequential, blackboard mode).** Phase control, termination, report assembly.
+  *Check:* clean case runs end to end and produces a valid `OnboardingReport`.
+  *Done:* Built `agents/adk/orchestrator.py` and `scripts/run_case.py`. Clean case (case_001) auto-approves; mismatch and sanctions cases escalate to human with cited evidence trails. Produces valid OnboardingReport.
+
+## Day 4 (Nov 4): Risk, guardrails, telemetry
+
+- [x] **T10 Risk model and scorer.** Synthetic training set, scikit-learn model, `risk_model_predict` MCP tool, Risk Scorer agent, `DecisionDraft`.
+  *Check:* tiers and factors written to `risk` zone with evidence IDs.
+  *Done:* Trained GradientBoostingClassifier in `data/models/risk_gradient_boosting.joblib`. Exposed as MCP tool `risk_model_predict`. Built `agents/adk/risk.py` combining ML prior with rule factors and evidence IDs. 3 unit tests pass.
+- [x] **T11 Guardrails v1.** Input guard (toxicity, injection, social engineering), PII guard, output validation, decision rules (no auto-reject, escalation).
+  *Check:* all tests listed in `docs/04_SECURITY.md` section 6 items 1 to 5 pass.
+  *Done:* Built `input_guard.py`, `pii_guard.py`, and `output_guard.py`. Wired into gateway, orchestrator, and screening crew. Verified with 5 dedicated unit and integration tests passing in `tests/test_security_guardrails.py`.
+- [x] **T12 Callbacks and traces.** ADK callbacks and CrewAI step/task callbacks emit `StepTrace`; cost estimation.
+  *Check:* a run shows traces from both frameworks in the `system` zone.
+  *Done:* Built `telemetry/cost.py` and `telemetry/callbacks.py`. Traces from both ADK and CrewAI recorded in blackboard `system.traces`. Provided `scripts/show_traces.py` displaying per-agent telemetry table.
+- [x] **T13 Parallel pattern.** Concurrent dispatch of verification and screening with versioned writes.
+  *Check:* same case in parallel mode gives equivalent report and lower runtime.
+  *Done:* Added ThreadPool concurrent execution of identity verification and sanctions screening in `Orchestrator`, with atomic optimistic concurrency 409 retry in `append_event_with_retry`. Verified with `tests/test_parallel.py`.
+- [x] **T14 Hybrid P2P mode.** `MessagingStrategy` implementation with direct hand-offs plus board logging.
+  *Check:* same case runs in both modes; report schema identical.
+  *Done:* Implemented `BlackboardStrategy` and `HybridP2PStrategy` in `src/onboardiq/messaging/strategy.py`. Verified all 4 combinations (2 modes x 2 patterns) produce identical `OnboardingReport` schema with `scripts/compare_modes_and_patterns.py` and `tests/test_modes_and_patterns.py`.
+- [x] **T15 Company path (basic).** UBO tool and analyst, screen owners.
+  *Check:* company case resolves owners and screens them.
+  *Done:* Built `ubo_graph` FastMCP tool (NetworkX) and `crewai.ubo_analyst`. Tested clean company case (case_007), sanctioned owner escalation (case_008), and opaque ownership flagging (case_009). 4 unit tests pass in `tests/test_ubo.py`.
+- [x] **T16 Eval runner v0.** Run a small grid (about 8 to 12 runs), save reports and traces, compute metrics, draw one boxplot and one heatmap.
+  *Check:* `results/plots/` has at least a boxplot and a heatmap.
+  *Done:* Built `eval/runner.py`, `metrics.py`, and `plots.py`. Executed 10/10 grid sweep saving report/traces/board JSONs. Generated `results/metrics.csv`, `runtime_by_pattern.png`, and `agent_phase_heatmap.png`.
+ 
+## Day 6 (Nov 6): Submission
+
+- [x] **T17 Updated problem statement** (one page, from BRD and PRD).
+  *Check:* written to `docs/submission/problem_statement.md`.
+  *Done:* Authored comprehensive 1-page updated problem statement in `docs/submission/problem_statement.md` detailing problem context, objectives, architectural additions, scope boundaries, and the core research question.
+- [x] **T18 Updated plan** (this checklist with status, plus what moved to the final phase).
+  *Check:* written to `docs/submission/project_plan.md`.
+  *Done:* Authored updated project plan with detailed completed work, final phase roadmap (T23–T33), rotation matrix, and risk watchlist.
+- [x] **T19 Work-in-progress report** (1 to 2 pages): architecture diagram, what works, first results, issues, plan.
+  *Check:* written to `docs/submission/wip_report.md`.
+  *Done:* Authored comprehensive WIP report with Mermaid architecture diagram, empirical proof of core capabilities, verified 10-run benchmark table, and issue resolution log.
+- [x] **T20 Coverage slide** (one slide): table of the 11 criteria with status Done, In progress or Planned, and one evidence item each. Be honest about what is planned.
+  *Check:* written to `docs/submission/coverage_slide.md`.
+  *Done:* Formatted slide-ready markdown table covering all 11 course criteria (8 Done, 2 In Progress, 1 Planned) with exact file and artifact evidence citations.
+- [ ] **T21 Demo rehearsal.** Script: clean case, sanctions near-match, injecting case, show board, traces, heatmap. Each teammate must be able to explain any component.
+- [ ] **T22 Push to public GitHub.** Check no secrets and no real data. Submit before 23:59.
+
+## Final phase (after Nov 6)
+
+- [ ] **T23 Adverse media agent** and local news corpus.
+- [ ] **T24 Reviewer agent and reflection loop** (max 2 loops), `policy_rag` tool, `data/policy.md`.
+- [ ] **T25 Client Communicator and RFI loop.** Handle abusive and impatient personas.
+- [ ] **T26 Tamper score and forger persona.**
+- [ ] **T27 Persona prompt variants** (structure and content) and injection tests.
+- [ ] **T28 Full dataset** (20 to 24 cases) and persona sweep.
+- [ ] **T29 Tracing** with OpenTelemetry to Langfuse or Phoenix; one trace per case.
+- [ ] **T30 Full evaluation** (40+ runs), side studies, statistics, all plots.
+- [ ] **T31 Review console and UI** (Streamlit): live board, officer approval.
+- [ ] **T32 Cloud Run deployment** of all services; secrets in Secret Manager.
+- [ ] **T33 Final report and presentation**; contribution matrix; viva preparation.
+
+## Team rotation
+
+Roles must rotate across phases and everyone must contribute across components. Suggested rotation of focus areas between phases: (a) blackboard and schema, (b) ADK agents and guardrails, (c) CrewAI crew, MCP tools and evaluation. Rotate each phase and pair on integration tasks (T08, T13, T14).
+
+## Risk watchlist
+
+- A2A integration is the highest technical risk. If blocked for more than half a day, build a thin HTTP adapter that follows the A2A message shape, keep the Agent Card, and note the limitation.
+- LLM cost: use a small model and cache tool results.
+- Keep a working end-to-end path at all times; add features on a branch and merge only when the demo path still passes.

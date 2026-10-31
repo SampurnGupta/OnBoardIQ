@@ -1,0 +1,42 @@
+{
+  "case_id": "case_008",
+  "client_type": "company",
+  "declared_name": "Nordic Import Export LLP",
+  "declared_dob": null,
+  "declared_country": "IN",
+  "declared_address": "Suite 201, Regus Centre, DLF Cyber City, Gurugram 122002",
+  "declared_source_of_funds": "cross_border_commodity_trading",
+  "expected_monthly_volume_inr": 8000000.0,
+  "documents": [
+    "data/docs/case_008_incorporation.png"
+  ],
+  "ownership_chart": {
+    "entity": "Nordic Import Export LLP",
+    "owners": [
+      {
+        "name": "Viktor Darkovich",
+        "pct": 45.0,
+        "path": [
+          "Nordic Import Export LLP",
+          "Viktor Darkovich"
+        ]
+      },
+      {
+        "name": "Kavita Rao",
+        "pct": 55.0,
+        "path": [
+          "Nordic Import Export LLP",
+          "Kavita Rao"
+        ]
+      }
+    ]
+  },
+  "ground_truth": {
+    "expected_tier": "high",
+    "expected_decision": "escalate_to_human",
+    "planted_flags": [
+      "sanctions_hit"
+    ],
+    "is_namesake_false_positive": false
+  }
+}
