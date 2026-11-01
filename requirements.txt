@@ -27,9 +27,6 @@ pytesseract
 pillow
 pypdf
 faker
-chromadb
-sentence-transformers
-detoxify
 
 # Storage and cloud
 google-cloud-firestore
