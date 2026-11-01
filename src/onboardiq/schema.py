@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -289,7 +289,7 @@ class ReviewZone(BaseModel):
     policy_checks: list[PolicyCheck] = Field(default_factory=list)
     challenges: list[Challenge] = Field(default_factory=list)
     final_decision: Decision | None = None
-    human_override: str | None = None
+    human_override: str | dict[str, Any] | None = None
 
 
 class SystemZone(BaseModel):

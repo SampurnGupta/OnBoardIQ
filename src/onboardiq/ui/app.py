@@ -327,11 +327,7 @@ elif nav == "⚖️ Compliance Officer Console":
                     # Write human override to review zone
                     board = client.get_run(selected_esc_run, agent_id="adk.orchestrator")
                     override_payload = {
-                        "human_override": {
-                            "officer": officer_name,
-                            "decision": "approved_by_human",
-                            "notes": officer_notes,
-                        },
+                        "human_override": f"Approved by {officer_name}: {officer_notes}",
                         "final_decision": "approve",
                     }
                     client.append_event_with_retry(
@@ -347,11 +343,7 @@ elif nav == "⚖️ Compliance Officer Console":
                 if st.button("❌ Human Confirm Reject", type="primary", use_container_width=True):
                     board = client.get_run(selected_esc_run, agent_id="adk.orchestrator")
                     override_payload = {
-                        "human_override": {
-                            "officer": officer_name,
-                            "decision": "rejected_by_human",
-                            "notes": officer_notes,
-                        },
+                        "human_override": f"Rejected by {officer_name}: {officer_notes}",
                         "final_decision": "reject",
                     }
                     client.append_event_with_retry(
