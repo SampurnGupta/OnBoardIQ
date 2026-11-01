@@ -20,6 +20,7 @@ from onboardiq.schema import Phase, StepTrace
 from onboardiq.telemetry.tracing import extract_trace_context, inject_trace_context, trace_agent
 
 app = FastAPI(title="OnboardIQ CrewAI A2A Screening Service", version="0.1.0")
+a2a_app = app  # Alias for convenient uvicorn invocation (uvicorn ...a2a_server:a2a_app)
 
 
 class SkillParameter(BaseModel):
