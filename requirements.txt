@@ -44,8 +44,9 @@ numpy
 scipy
 matplotlib
 seaborn
-streamlit
+streamlit>=1.40.0
 
 # Dev
 pytest
+pytest-asyncio
 ruff

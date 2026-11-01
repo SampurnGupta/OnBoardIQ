@@ -7,6 +7,14 @@ from pathlib import Path
 
 from onboardiq.agents.adk.orchestrator import Orchestrator
 from onboardiq.blackboard.client import BlackboardClient
+from onboardiq.blackboard.service import app as bb_app
+from onboardiq.blackboard.store import SQLiteBlackboardStore
+
+
+def _get_test_client() -> BlackboardClient:
+    bb_app.state.store = SQLiteBlackboardStore(db_path=":memory:")
+    return BlackboardClient(base_url="http://testserver", app=bb_app)
+
 from onboardiq.schema import (
     GuardrailEvent,
     LabelledCase,
@@ -53,7 +61,7 @@ def test_single_case_one_trace_hierarchy():
     """Verify one case execution produces exactly one trace containing root and child agent spans."""
     clear_spans()
     case = _load_sample_case()
-    board_client = BlackboardClient(base_url="http://127.0.0.1:8001")
+    board_client = _get_test_client()
     orchestrator = Orchestrator()
 
     run_id = "test_otel_case_run_01"
@@ -124,7 +132,7 @@ def test_provenance_audit_summary():
     """Verify get_provenance_summary produces audit verification evidence without PII."""
     clear_spans()
     case = _load_sample_case()
-    board_client = BlackboardClient(base_url="http://127.0.0.1:8001")
+    board_client = _get_test_client()
     orchestrator = Orchestrator()
 
     run_id = "test_audit_provenance_01"

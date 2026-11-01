@@ -7,7 +7,6 @@
 5. Integration: Non-permitted agent (e.g. crewai.media_analyst or adk.orchestrator) calling blackboard for pii_vault gets 403.
 """
 
-import httpx
 import pytest
 
 from onboardiq.blackboard.client import BlackboardClient
@@ -211,12 +210,12 @@ def test_restricted_zone_403_integration():
     client.create_run(board)
 
     # crewai.media_analyst is not allowed to read pii_vault
-    with pytest.raises(httpx.HTTPStatusError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         client.get_zone(run_id="run_sec_test", zone="pii_vault", agent_id="crewai.media_analyst")
     assert exc_info.value.response.status_code == 403
 
     # adk.orchestrator is not allowed to read pii_vault
-    with pytest.raises(httpx.HTTPStatusError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         client.get_zone(run_id="run_sec_test", zone="pii_vault", agent_id="adk.orchestrator")
     assert exc_info.value.response.status_code == 403
 

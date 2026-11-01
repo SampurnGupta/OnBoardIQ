@@ -239,9 +239,10 @@ class BlackboardClient:
                     agent_id=agent_id,
                 )
                 return res, ver + 1
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 409 and attempt < max_retries - 1:
-                    time.sleep(0.01 * (attempt + 1))
+            except Exception as exc:
+                status_code = getattr(getattr(exc, 'response', None), 'status_code', None)
+                if status_code == 409 and attempt < max_retries - 1:
+                    time.sleep(0.02 * (attempt + 1))
                     latest = self.get_run(run_id, agent_id=agent_id)
                     ver = latest.version
                     continue
